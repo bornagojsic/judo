@@ -1,4 +1,3 @@
-use color_eyre::Result;
 use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind};
 use ratatui::{
     DefaultTerminal, Frame,
@@ -70,10 +69,7 @@ impl App {
     }
 
     fn handle_key_event(&mut self, key_event: KeyEvent) {
-        match key_event.code {
-            KeyCode::Char('q') => self.exit(),
-            _ => {}
-        }
+        if let KeyCode::Char('q') = key_event.code { self.exit() }
     }
 
     fn exit(&mut self) {

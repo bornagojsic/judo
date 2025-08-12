@@ -1,5 +1,4 @@
 use anyhow::{Context, Result};
-use dirs;
 use sqlx::sqlite::{SqliteConnectOptions, SqlitePool};
 use std::str::FromStr;
 

@@ -1,9 +1,6 @@
 use anyhow::{Context, Result};
-use sqlx::ConnectOptions;
 use sqlx::sqlite::{SqliteConnectOptions, SqlitePool};
 use std::str::FromStr;
-
-use std::path::PathBuf;
 use dirs;
 
 /// Get the connection string to SQLite DB
@@ -22,7 +19,7 @@ fn get_db_connection_str() -> Result<String> {
 }
 
 /// Create connection to SQLite DB pool and create DB if not present
-async fn get_db_pool(db_connection_str: str) -> Result<SqlitePool>{
+async fn get_db_pool(db_connection_str: &str) -> Result<SqlitePool>{
 
     // Create connection options
     let opts = SqliteConnectOptions::from_str(db_connection_str)

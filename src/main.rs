@@ -10,6 +10,7 @@ use ratatui::{
     widgets::{Block, Paragraph, Widget},
     DefaultTerminal, Frame,
 };
+mod db;
 
 fn main() -> io::Result<()>{
 

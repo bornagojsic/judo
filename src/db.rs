@@ -4,7 +4,6 @@ use std::str::FromStr;
 
 /// Get the connection string to SQLite DB
 fn get_db_connection_str() -> Result<String> {
-
     // Define the path to DB depending on test or prod
     let db_path = if cfg!(test) {
         // Use temp directory for tests

@@ -2,25 +2,16 @@ use anyhow::{Context, Result};
 use sqlx::sqlite::{SqliteConnectOptions, SqlitePool};
 use std::str::FromStr;
 
-/// Get the connection string to SQLite DB
 fn get_db_connection_str() -> Result<String> {
-    // Define the path to DB depending on test or prod
-    let db_path = if cfg!(test) {
-        // Use temp directory for tests
-        std::env::temp_dir().join("td_test").join("todos.db")
-    } else {
-        // Use data directory to standardize storage
-        let data_dir = dirs::data_dir()
-            .with_context(|| "Unable to find data directory")?
-            .join("td");
+    // Use data directory to standardize storage
+    let data_dir = dirs::data_dir()
+        .with_context(|| "Unable to find data directory")?
+        .join("td");
 
-        // Create directory if it doesn't exist
-        std::fs::create_dir_all(&data_dir).with_context(|| "Unable to create data directory")?;
+    // Create directory
+    std::fs::create_dir_all(&data_dir).with_context(|| "Unable to create data directory")?;
 
-        data_dir.join("todos.db")
-    };
-
-    Ok(format!("sqlite:{}", db_path.display()))
+    Ok(format!("sqlite:{}", data_dir.join("todos.db").display()))
 }
 
 /// Create connection to SQLite DB pool and create DB if not present
@@ -45,9 +36,21 @@ mod test {
 
     #[test]
     fn test_get_db_connection_str_success() -> Result<()> {
-        let result = get_db_connection_str();
-        assert!(result.is_ok());
-        assert_eq!(result?, "sqlite:/tmp/td_test/todos.db");
+        let _db_connection = get_db_connection_str()?;
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_connection_pool_success() -> Result<()> {
+        let connection_string = get_db_connection_str()?;
+        let _pool = get_db_pool(&connection_string).await?;
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_connection_pool_in_memory_success() -> Result<()> {
+        let connection_string = "sqlite:memory:".to_string();
+        let _pool = get_db_pool(&connection_string).await?;
         Ok(())
     }
 }

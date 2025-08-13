@@ -4,6 +4,8 @@ use std::str::FromStr;
 
 /// Get the connection string to SQLite DB
 fn get_db_connection_str() -> Result<String> {
+
+    // Define the path to DB depending on test or prod
     let db_path = if cfg!(test) {
         // Use temp directory for tests
         std::env::temp_dir().join("td_test").join("todos.db")
@@ -41,13 +43,12 @@ async fn get_db_pool(db_connection_str: &str) -> Result<SqlitePool> {
 mod test {
     use super::*;
     use anyhow::Result;
-    use std::io;
 
     #[test]
     fn test_get_db_connection_str_success() -> Result<()> {
         let result = get_db_connection_str();
         assert!(result.is_ok());
-        println!("{:?}", result?);
+        assert_eq!(result?, "sqlite:/tmp/td_test/todos.db");
         Ok(())
     }
 }

@@ -4,15 +4,23 @@ use std::str::FromStr;
 
 /// Get the connection string to SQLite DB
 fn get_db_connection_str() -> Result<String> {
-    // Use data directory to standardize storage
-    let data_dir = dirs::data_dir()
-        .with_context(|| "Unable to find data directory")?
-        .join("td");
 
-    // Create directory if it doesn't exist
-    std::fs::create_dir_all(&data_dir).with_context(|| "Unable to create data directory")?;
+    let db_path = if cfg!(test){
+        // Use temp directory for tests
+        std::env::temp_dir().join("td_test").join("todos.db")
+    } else {
+        // Use data directory to standardize storage
+        let data_dir = dirs::data_dir()
+            .with_context(|| "Unable to find data directory")?
+            .join("td");
 
-    Ok(format!("sqlite:{}", data_dir.join("todos.db").display()))
+        // Create directory if it doesn't exist
+        std::fs::create_dir_all(&data_dir).with_context(|| "Unable to create data directory")?;
+
+        data_dir.join("todos.db")
+    };
+
+    Ok(format!("sqlite:{}", db_path.display()))
 }
 
 /// Create connection to SQLite DB pool and create DB if not present
@@ -28,4 +36,21 @@ async fn get_db_pool(db_connection_str: &str) -> Result<SqlitePool> {
         .with_context(|| "Failed to create DB pool")?;
 
     Ok(pool)
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use anyhow::Result;
+    use std::io;
+
+    #[test]
+    fn test_get_db_connection_str_success() -> Result<()> {
+
+        let result = get_db_connection_str(); 
+        assert!(result.is_ok());
+        println!("{:?}", result?);
+        Ok(())
+    }
+
 }

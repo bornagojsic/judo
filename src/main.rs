@@ -69,7 +69,9 @@ impl App {
     }
 
     fn handle_key_event(&mut self, key_event: KeyEvent) {
-        if let KeyCode::Char('q') = key_event.code { self.exit() }
+        if let KeyCode::Char('q') = key_event.code {
+            self.exit()
+        }
     }
 
     fn exit(&mut self) {

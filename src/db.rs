@@ -4,8 +4,7 @@ use std::str::FromStr;
 
 /// Get the connection string to SQLite DB
 fn get_db_connection_str() -> Result<String> {
-
-    let db_path = if cfg!(test){
+    let db_path = if cfg!(test) {
         // Use temp directory for tests
         std::env::temp_dir().join("td_test").join("todos.db")
     } else {
@@ -46,11 +45,9 @@ mod test {
 
     #[test]
     fn test_get_db_connection_str_success() -> Result<()> {
-
-        let result = get_db_connection_str(); 
+        let result = get_db_connection_str();
         assert!(result.is_ok());
         println!("{:?}", result?);
         Ok(())
     }
-
 }

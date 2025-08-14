@@ -1,4 +1,5 @@
 use anyhow::{Context, Result};
+use sqlx::migrate::Migrator;
 use sqlx::sqlite::{SqliteConnectOptions, SqlitePool};
 use std::str::FromStr;
 
@@ -29,51 +30,28 @@ async fn get_db_pool(db_connection_str: &str) -> Result<SqlitePool> {
     Ok(pool)
 }
 
-/// Create the database tables
-async fn create_tables(pool: &SqlitePool) -> Result<()> {
-    // Create TodoLists table
-    sqlx::query(
-        r#"
-        CREATE TABLE IF NOT EXISTS todo_lists (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
-            created_at TEXT NOT NULL,
-            updated_at TEXT NOT NULL
-        )
-        "#,
-    )
-    .execute(pool)
-    .await
-    .with_context(|| "Failed to create todo_lists table")?;
+/// Run database migrations
+async fn run_migrations(pool: &SqlitePool) -> Result<()> {
+    // Embed the migration files into binary
+    static MIGRATOR: Migrator = sqlx::migrate!();
 
-    // Create TodoItems table
-    sqlx::query(
-        r#"
-        CREATE TABLE IF NOT EXISTS todo_items (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            list_id INTEGER NOT NULL,
-            name TEXT NOT NULL,
-            is_done BOOLEAN NOT NULL DEFAULT FALSE,
-            priority TEXT NOT NULL CHECK (priority IN ('high', 'medium', 'low')),
-            due_date TEXT,
-            created_at TEXT NOT NULL,
-            updated_at TEXT NOT NULL,
-            FOREIGN KEY (list_id) REFERENCES todo_lists (id) ON DELETE CASCADE
-        )
-        "#,
-    )
-    .execute(pool)
-    .await
-    .with_context(|| "Failed to create todo_items table")?;
+    MIGRATOR
+        .run(pool)
+        .await
+        .with_context(|| "Failed to run database migrations")?;
 
     Ok(())
 }
 
-/// Initialize database with connection and create tables
-async fn init_db() -> Result<SqlitePool> {
+/// Initialize database with connection and run migrations
+/// This is safe to call on every startup - migrations are idempotent
+pub async fn init_db() -> Result<SqlitePool> {
     let connection_string = get_db_connection_str()?;
     let pool = get_db_pool(&connection_string).await?;
-    create_tables(&pool).await?;
+
+    // Always run migrations on startup - they're idempotent and fast
+    run_migrations(&pool).await?;
+
     Ok(pool)
 }
 
@@ -103,10 +81,10 @@ mod test {
     }
 
     #[tokio::test]
-    async fn test_create_tables_success() -> Result<()> {
-        let connection_string = "sqlite:memory:".to_string();
+    async fn test_migrations() -> Result<()> {
+        let connection_string = "sqlite::memory:".to_string();
         let pool = get_db_pool(&connection_string).await?;
-        create_tables(&pool).await?;
+        run_migrations(&pool).await?;
         Ok(())
     }
 }

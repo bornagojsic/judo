@@ -75,7 +75,7 @@ mod test {
 
     #[tokio::test]
     async fn test_connection_pool_in_memory_success() -> Result<()> {
-        let connection_string = "sqlite:memory:".to_string();
+        let connection_string = "sqlite::memory:".to_string();
         let _pool = get_db_pool(&connection_string).await?;
         Ok(())
     }

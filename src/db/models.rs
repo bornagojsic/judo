@@ -20,7 +20,7 @@ pub struct TodoList {
 #[derive(Debug, FromRow)]
 pub struct TodoItem {
     pub id: i64,
-    pub list_id: i64,  // Foreign key to TodoList
+    pub list_id: i64,
     pub name: String,
     pub is_done: bool,
     pub priority: Priority,

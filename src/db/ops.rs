@@ -209,7 +209,7 @@ impl TodoItem {
         let now = Utc::now();
 
         sqlx::query("UPDATE todo_items SET due_date = ?1, updated_at = ?2 WHERE id = ?3")
-            .bind(&new_due_date)
+            .bind(new_due_date)
             .bind(now)
             .bind(self.id)
             .execute(pool)

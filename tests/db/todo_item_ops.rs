@@ -36,6 +36,7 @@ async fn test_todo_item_crud_operations() -> Result<()> {
     // Verify the created list has correct properties
     assert!(created_item_with_all_felds.id > 0);
     assert_eq!(created_item_with_all_felds.list_id, created_list.id);
+    assert_eq!(created_item_with_all_felds.is_done, false);
     assert_eq!(created_item_with_all_felds.name, "My item");
     assert_eq!(created_item_with_all_felds.priority, Some(Priority::High));
     assert!(created_item_with_all_felds.due_date.is_some());
@@ -51,6 +52,7 @@ async fn test_todo_item_crud_operations() -> Result<()> {
     assert!(created_item_without_due_date.id > 0);
     assert_eq!(created_item_without_due_date.list_id, created_list.id);
     assert_eq!(created_item_without_due_date.name, "My item without date");
+    assert_eq!(created_item_without_due_date.is_done, false);
     assert_eq!(created_item_without_due_date.priority, Some(Priority::Low));
     assert!(created_item_without_due_date.due_date.is_none());
     assert!(created_item_without_due_date.created_at <= Utc::now());
@@ -80,6 +82,9 @@ async fn test_todo_item_crud_operations() -> Result<()> {
 
     assert_eq!(created_item_with_all_felds.name, new_name);
     assert_eq!(fetched_item_after_name_change.name, new_name);
+
+    // Toggle done
+    // TODO
 
     Ok(())
 }

@@ -18,8 +18,8 @@ impl TodoList {
             "#,
         )
         .bind(&new_list.name)
-        .bind(&now)
-        .bind(&now)
+        .bind(now)
+        .bind(now)
         .fetch_one(pool)
         .await
         .with_context(|| "Failed to create todo list")?;
@@ -58,7 +58,7 @@ impl TodoList {
 
         sqlx::query("UPDATE todo_lists SET name = ?1, updated_at = ?2 WHERE id = ?3")
             .bind(&new_name)
-            .bind(&now)
+            .bind(now)
             .bind(self.id)
             .execute(pool)
             .await
@@ -96,9 +96,9 @@ impl TodoItem {
         .bind(new_item.list_id)
         .bind(&new_item.name)
         .bind(&new_item.priority)
-        .bind(&new_item.due_date)
-        .bind(&now)
-        .bind(&now)
+        .bind(new_item.due_date)
+        .bind(now)
+        .bind(now)
         .fetch_one(pool)
         .await
         .with_context(|| "Failed to create todo item")?;
@@ -130,7 +130,7 @@ impl TodoItem {
 
         sqlx::query("UPDATE todo_items SET name = ?1, updated_at = ?2 WHERE id = ?3")
             .bind(&new_name)
-            .bind(&now)
+            .bind(now)
             .bind(self.id)
             .execute(pool)
             .await
@@ -146,7 +146,7 @@ impl TodoItem {
 
         sqlx::query("UPDATE todo_items SET is_done = ?1, updated_at = ?2 WHERE id = ?3")
             .bind(new_status)
-            .bind(&now)
+            .bind(now)
             .bind(self.id)
             .execute(pool)
             .await
@@ -167,7 +167,7 @@ impl TodoItem {
 
         sqlx::query("UPDATE todo_items SET priority = ?1, updated_at = ?2 WHERE id = ?3")
             .bind(&new_priority)
-            .bind(&now)
+            .bind(now)
             .bind(self.id)
             .execute(pool)
             .await

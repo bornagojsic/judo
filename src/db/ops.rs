@@ -1,5 +1,5 @@
 use anyhow::{Context, Result};
-use chrono::Utc;
+use chrono::{DateTime, Utc};
 use sqlx::SqlitePool;
 
 use crate::db::models::{NewTodoItem, NewTodoList, Priority, TodoItem, TodoList};
@@ -124,6 +124,23 @@ impl TodoItem {
         Ok(items)
     }
 
+    /// Get item with a specific id
+    pub async fn get_by_id(pool: &SqlitePool, id: i64) -> Result<Option<TodoItem>> {
+        let item = sqlx::query_as::<_, TodoItem>(
+            r#"
+            SELECT id, list_id, name, is_done, priority, due_date, created_at, updated_at
+            FROM todo_items 
+            WHERE id = ?1 
+            "#,
+        )
+        .bind(id)
+        .fetch_optional(pool)
+        .await
+        .with_context(|| "Failed to fetch todo item")?;
+
+        Ok(item)
+    }
+
     /// Update to-do item name
     pub async fn update_name(&mut self, pool: &SqlitePool, new_name: String) -> Result<()> {
         let now = Utc::now();
@@ -135,6 +152,9 @@ impl TodoItem {
             .execute(pool)
             .await
             .with_context(|| "Failed to update todo item name")?;
+
+        self.name = new_name;
+        self.updated_at = now;
 
         Ok(())
     }
@@ -154,6 +174,7 @@ impl TodoItem {
 
         self.is_done = new_status;
         self.updated_at = now;
+
         Ok(())
     }
 
@@ -173,7 +194,29 @@ impl TodoItem {
             .await
             .with_context(|| "Failed to update todo item priority")?;
 
-        self.priority = new_priority;
+        self.priority = Some(new_priority);
+        self.updated_at = now;
+
+        Ok(())
+    }
+
+    /// Update item due date
+    pub async fn update_due_date(
+        &mut self,
+        pool: &SqlitePool,
+        new_due_date: DateTime<Utc>,
+    ) -> Result<()> {
+        let now = Utc::now();
+
+        sqlx::query("UPDATE todo_items SET due_date = ?1, updated_at = ?2 WHERE id = ?3")
+            .bind(&new_due_date)
+            .bind(now)
+            .bind(self.id)
+            .execute(pool)
+            .await
+            .with_context(|| "Failed to update todo item priority")?;
+
+        self.due_date = Some(new_due_date);
         self.updated_at = now;
         Ok(())
     }

@@ -23,7 +23,7 @@ pub struct TodoItem {
     pub list_id: i64,
     pub name: String,
     pub is_done: bool,
-    pub priority: Priority,
+    pub priority: Option<Priority>,
     pub due_date: Option<DateTime<Utc>>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
@@ -39,6 +39,6 @@ pub struct NewTodoList {
 pub struct NewTodoItem {
     pub list_id: i64,
     pub name: String,
-    pub priority: Priority,
+    pub priority: Option<Priority>,
     pub due_date: Option<DateTime<Utc>>,
 }

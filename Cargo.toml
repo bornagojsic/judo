@@ -3,6 +3,14 @@ name = "td"
 version = "0.1.0"
 edition = "2024"
 
+[[bin]]
+name = "td"
+path = "src/main.rs"
+
+[lib]
+name = "td"
+path = "src/lib.rs"
+
 [dependencies]
 anyhow = "1.0.99"
 chrono = { version = "0.4.41", features = ["serde"] }

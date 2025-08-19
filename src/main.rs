@@ -9,7 +9,6 @@ use ratatui::{
     widgets::{Block, Paragraph, Widget},
 };
 use std::io;
-mod db;
 
 fn main() -> io::Result<()> {
     // Set the terminal up

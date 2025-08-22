@@ -42,3 +42,10 @@ pub struct NewTodoItem {
     pub priority: Option<Priority>,
     pub due_date: Option<DateTime<Utc>>,
 }
+
+// Convenient repackaging of DB items to cache reads from DB
+#[derive(Debug)]
+pub struct UIList {
+    pub list: TodoList,
+    pub items: Vec<TodoItem>,
+}

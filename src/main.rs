@@ -10,12 +10,12 @@ use ratatui::text::Line;
 use ratatui::widgets::{Block, BorderType, Borders, Padding, Paragraph, StatefulWidget, Widget};
 use sqlx::sqlite::SqlitePool;
 use td::db::connections::init_db;
-use td::db::models::{TodoItem, TodoList};
+use td::db::models::{TodoItem, TodoList, UIList};
 
 // #[derive(Debug, Default)]
 pub struct App {
     pool: SqlitePool,
-    lists: Vec<TodoList>,
+    lists: Vec<UIList>,
     selected_list: Option<TodoList>,
     selected_item: Option<TodoItem>,
     exit: bool,
@@ -28,9 +28,7 @@ impl App {
         let pool = init_db().await.expect("Failed to connect to database");
 
         // Read the lists from db
-        let lists = TodoList::get_all(&pool)
-            .await
-            .expect("Failed to read lists");
+        let lists = UIList::get_all(&pool).await.expect("Failed to read lists");
 
         Self {
             pool: pool,

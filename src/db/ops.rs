@@ -2,7 +2,7 @@ use anyhow::{Context, Result};
 use chrono::{DateTime, Utc};
 use sqlx::SqlitePool;
 
-use crate::db::models::{NewTodoItem, NewTodoList, Priority, TodoItem, TodoList};
+use crate::db::models::{NewTodoItem, NewTodoList, Priority, TodoItem, TodoList, UIList};
 
 impl TodoList {
     /// Create a new todo list
@@ -230,5 +230,28 @@ impl TodoItem {
             .with_context(|| "Failed to delete todo item")?;
 
         Ok(())
+    }
+}
+
+impl UIList {
+    /// Get all lists in db already attached to their items
+    pub async fn get_all(pool: &SqlitePool) -> Result<Vec<UIList>> {
+        // Fetch all lists
+        let lists = TodoList::get_all(pool)
+            .await
+            .with_context(|| "Failed to fetch lists from db")?;
+
+        let mut ui_lists = Vec::new();
+
+        // For each list, fetch its items and create a UIList
+        for list in lists {
+            let items = TodoItem::get_by_list_id(pool, list.id)
+                .await
+                .with_context(|| format!("Failed to fetch items for list {}", list.id))?;
+
+            ui_lists.push(UIList { list, items });
+        }
+
+        Ok(ui_lists)
     }
 }

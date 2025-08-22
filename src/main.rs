@@ -3,17 +3,18 @@ use crossterm::event::{self, KeyCode, KeyEvent};
 use ratatui::DefaultTerminal;
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Alignment, Constraint, Layout, Rect};
-use ratatui::style::Stylize;
+use ratatui::style::{Color, Style, Stylize, Modifier};
 use ratatui::text::Line;
 use ratatui::widgets::{
     Block, BorderType, Borders, HighlightSpacing, List, ListItem, ListState, Padding, Paragraph,
     StatefulWidget, Widget,
 };
 use sqlx::sqlite::SqlitePool;
+use std::str::FromStr;
 use td::db::connections::init_db;
 use td::db::models::{TodoItem, TodoList, UIList};
 
-// #[derive(Debug, Default)]
+//#[derive(Debug, Default)]
 pub struct App {
     pool: SqlitePool,
     lists: Vec<UIList>,
@@ -94,6 +95,13 @@ impl App {
 /// It should always implement render
 impl Widget for &mut App {
     fn render(self, area: Rect, buf: &mut Buffer) {
+        // Render a background block that fills the entire area
+        let background_color = Color::from_str("#002626").unwrap();
+        let foreground_color = Color::from_str("#F0EAD8").unwrap();
+        let background =
+            Block::default().style(Style::default().bg(background_color).fg(foreground_color));
+        background.render(area, buf);
+
         // Define the main layout of the app
         let main_layout = Layout::vertical([
             Constraint::Percentage(20), // Header
@@ -158,7 +166,13 @@ impl App {
             .collect();
         let list: List = List::new(items)
             .block(block)
-            .highlight_symbol(">")
+            .highlight_symbol(" ▸ ")            
+            .highlight_style(
+                // Swap foreground and background
+                Style::default()
+                    .bg(Color::from_str("#F0EAD8").unwrap()) 
+                    .fg(Color::from_str("#002626").unwrap()) 
+            )
             .highlight_spacing(HighlightSpacing::Always);
 
         StatefulWidget::render(list, area, buf, &mut self.list_state)
@@ -186,14 +200,19 @@ impl App {
 
             let list: List = List::new(items)
                 .block(block)
-                .highlight_symbol(">")
+                .highlight_symbol(" ▸ ")
+                .highlight_style(
+                    // Swap foreground and background
+                    Style::default()
+                        .bg(Color::from_str("#F0EAD8").unwrap()) 
+                        .fg(Color::from_str("#002626").unwrap()) 
+                )
                 .highlight_spacing(HighlightSpacing::Always);
 
             StatefulWidget::render(list, area, buf, &mut selected_list.item_state);
         } else {
             Paragraph::new("Select a to-do list first")
                 .left_aligned()
-                .italic()
                 .block(block)
                 .render(area, buf);
         }

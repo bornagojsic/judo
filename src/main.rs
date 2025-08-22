@@ -3,9 +3,7 @@ use crossterm::event::{self, KeyCode, KeyEvent};
 use ratatui::DefaultTerminal;
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Alignment, Constraint, Layout, Rect};
-use ratatui::style::Style;
 use ratatui::style::Stylize;
-use ratatui::symbols;
 use ratatui::text::Line;
 use ratatui::widgets::{Block, BorderType, Borders, Padding, Paragraph, StatefulWidget, Widget};
 use sqlx::sqlite::SqlitePool;
@@ -31,8 +29,8 @@ impl App {
         let lists = UIList::get_all(&pool).await.expect("Failed to read lists");
 
         Self {
-            pool: pool,
-            lists: lists,
+            pool,
+            lists,
             selected_list: None,
             selected_item: None,
             exit: false,

@@ -3,7 +3,7 @@ use crossterm::event::{self, KeyCode, KeyEvent};
 use ratatui::DefaultTerminal;
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Alignment, Constraint, Layout, Rect};
-use ratatui::style::{Color, Modifier, Style, Stylize};
+use ratatui::style::{Color, Style, Stylize};
 use ratatui::text::Line;
 use ratatui::widgets::{
     Block, BorderType, Borders, HighlightSpacing, List, ListItem, ListState, Padding, Paragraph,
@@ -12,7 +12,7 @@ use ratatui::widgets::{
 use sqlx::sqlite::SqlitePool;
 use std::str::FromStr;
 use td::db::connections::init_db;
-use td::db::models::{TodoItem, TodoList, UIList};
+use td::db::models::UIList;
 
 //#[derive(Debug, Default)]
 pub struct App {

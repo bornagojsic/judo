@@ -1,7 +1,5 @@
 use chrono::{DateTime, Utc};
-use ratatui::widgets::{
-    Block, BorderType, Borders, List, ListItem, ListState, Padding, Paragraph, Widget,
-};
+use ratatui::widgets::ListState;
 use sqlx::{FromRow, Type};
 
 #[derive(Debug, Clone, PartialEq, Eq, Type)]

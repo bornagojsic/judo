@@ -3,9 +3,7 @@ use chrono::{DateTime, Utc};
 use sqlx::SqlitePool;
 
 use crate::db::models::{NewTodoItem, NewTodoList, Priority, TodoItem, TodoList, UIItem, UIList};
-use ratatui::widgets::{
-    Block, BorderType, Borders, List, ListItem, ListState, Padding, Paragraph, Widget,
-};
+use ratatui::widgets::ListState;
 
 impl TodoList {
     /// Create a new todo list
@@ -259,9 +257,9 @@ impl UIList {
                 .collect();
 
             ui_lists.push(UIList {
-                list: list,
+                list,
                 item_state: ListState::default(),
-                items: items,
+                items,
             });
         }
 

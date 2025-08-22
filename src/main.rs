@@ -3,7 +3,7 @@ use crossterm::event::{self, KeyCode, KeyEvent};
 use ratatui::DefaultTerminal;
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Alignment, Constraint, Layout, Rect};
-use ratatui::style::{Color, Style, Stylize, Modifier};
+use ratatui::style::{Color, Modifier, Style, Stylize};
 use ratatui::text::Line;
 use ratatui::widgets::{
     Block, BorderType, Borders, HighlightSpacing, List, ListItem, ListState, Padding, Paragraph,
@@ -166,12 +166,12 @@ impl App {
             .collect();
         let list: List = List::new(items)
             .block(block)
-            .highlight_symbol(" ▸ ")            
+            .highlight_symbol(" ▸ ")
             .highlight_style(
                 // Swap foreground and background
                 Style::default()
-                    .bg(Color::from_str("#F0EAD8").unwrap()) 
-                    .fg(Color::from_str("#002626").unwrap()) 
+                    .bg(Color::from_str("#F0EAD8").unwrap())
+                    .fg(Color::from_str("#002626").unwrap()),
             )
             .highlight_spacing(HighlightSpacing::Always);
 
@@ -204,8 +204,8 @@ impl App {
                 .highlight_style(
                     // Swap foreground and background
                     Style::default()
-                        .bg(Color::from_str("#F0EAD8").unwrap()) 
-                        .fg(Color::from_str("#002626").unwrap()) 
+                        .bg(Color::from_str("#F0EAD8").unwrap())
+                        .fg(Color::from_str("#002626").unwrap()),
                 )
                 .highlight_spacing(HighlightSpacing::Always);
 

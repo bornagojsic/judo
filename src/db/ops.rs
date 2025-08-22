@@ -2,7 +2,10 @@ use anyhow::{Context, Result};
 use chrono::{DateTime, Utc};
 use sqlx::SqlitePool;
 
-use crate::db::models::{NewTodoItem, NewTodoList, Priority, TodoItem, TodoList, UIList};
+use crate::db::models::{NewTodoItem, NewTodoList, Priority, TodoItem, TodoList, UIItem, UIList};
+use ratatui::widgets::{
+    Block, BorderType, Borders, List, ListItem, ListState, Padding, Paragraph, Widget,
+};
 
 impl TodoList {
     /// Create a new todo list
@@ -247,9 +250,19 @@ impl UIList {
         for list in lists {
             let items = TodoItem::get_by_list_id(pool, list.id)
                 .await
-                .with_context(|| format!("Failed to fetch items for list {}", list.id))?;
+                .with_context(|| format!("Failed to fetch items for list {}", list.id))?
+                .iter()
+                .map(|i| UIItem {
+                    item: i.clone(),
+                    state: ListState::default(),
+                })
+                .collect();
 
-            ui_lists.push(UIList { list, items });
+            ui_lists.push(UIList {
+                list: list,
+                item_state: ListState::default(),
+                items: items,
+            });
         }
 
         Ok(ui_lists)

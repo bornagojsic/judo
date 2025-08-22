@@ -1,4 +1,7 @@
 use chrono::{DateTime, Utc};
+use ratatui::widgets::{
+    Block, BorderType, Borders, List, ListItem, ListState, Padding, Paragraph, Widget,
+};
 use sqlx::{FromRow, Type};
 
 #[derive(Debug, Clone, PartialEq, Eq, Type)]
@@ -17,7 +20,7 @@ pub struct TodoList {
     pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Debug, FromRow)]
+#[derive(Debug, FromRow, Clone)]
 pub struct TodoItem {
     pub id: i64,
     pub list_id: i64,
@@ -47,5 +50,12 @@ pub struct NewTodoItem {
 #[derive(Debug)]
 pub struct UIList {
     pub list: TodoList,
-    pub items: Vec<TodoItem>,
+    pub item_state: ListState,
+    pub items: Vec<UIItem>,
+}
+
+#[derive(Debug)]
+pub struct UIItem {
+    pub item: TodoItem,
+    pub state: ListState,
 }

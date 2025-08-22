@@ -5,7 +5,10 @@ use ratatui::buffer::Buffer;
 use ratatui::layout::{Alignment, Constraint, Layout, Rect};
 use ratatui::style::Stylize;
 use ratatui::text::Line;
-use ratatui::widgets::{Block, BorderType, Borders, Padding, Paragraph, StatefulWidget, Widget};
+use ratatui::widgets::{
+    Block, BorderType, Borders, HighlightSpacing, List, ListItem, ListState, Padding, Paragraph,
+    StatefulWidget, Widget,
+};
 use sqlx::sqlite::SqlitePool;
 use td::db::connections::init_db;
 use td::db::models::{TodoItem, TodoList, UIList};
@@ -14,8 +17,7 @@ use td::db::models::{TodoItem, TodoList, UIList};
 pub struct App {
     pool: SqlitePool,
     lists: Vec<UIList>,
-    selected_list: Option<TodoList>,
-    selected_item: Option<TodoItem>,
+    list_state: ListState,
     exit: bool,
 }
 
@@ -28,11 +30,13 @@ impl App {
         // Read the lists from db
         let lists = UIList::get_all(&pool).await.expect("Failed to read lists");
 
+        // Init state of lists
+        let list_state = ListState::default();
+
         Self {
             pool,
             lists,
-            selected_list: None,
-            selected_item: None,
+            list_state,
             exit: false,
         }
     }
@@ -51,10 +55,29 @@ impl App {
     /// Handle key press from user
     fn handle_key(&mut self, key: KeyEvent) {
         match key.code {
-            KeyCode::Char('q') | KeyCode::Esc => self.exit = true,
+            KeyCode::Char('q') => self.exit = true,
+            KeyCode::Char('s') => self.select_next_list(),
+            KeyCode::Char('w') => self.select_previous_list(),
+            //KeyCode::Down => self.select_next_item(),
+            //KeyCode::Up => self.select_previous_item(),
             _ => {}
         }
     }
+
+    fn select_next_list(&mut self) {
+        self.list_state.select_next();
+    }
+    fn select_previous_list(&mut self) {
+        self.list_state.select_previous();
+    }
+
+    // fn select_next_item(&mut self) {
+    //     self.lists.state.select_first();
+    // }
+
+    // fn select_previous_item(&mut self) {
+    //     self.todo_list.state.select_last();
+    // }
 }
 
 /// Widget trait implements the high-level rendering logic
@@ -119,10 +142,17 @@ impl App {
             .borders(Borders::TOP | Borders::LEFT | Borders::BOTTOM)
             .border_type(BorderType::Rounded);
 
-        Paragraph::new("List area")
-            .left_aligned()
+        let items: Vec<ListItem> = self
+            .lists
+            .iter()
+            .map(|ui_list| ListItem::from(ui_list.list.name.clone()))
+            .collect();
+        let list: List = List::new(items)
             .block(block)
-            .render(area, buf);
+            .highlight_symbol(">")
+            .highlight_spacing(HighlightSpacing::Always);
+
+        StatefulWidget::render(list, area, buf, &mut self.list_state)
     }
 
     // Render list of items

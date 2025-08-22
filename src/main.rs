@@ -4,10 +4,10 @@ use ratatui::buffer::Buffer;
 use ratatui::layout::{Constraint, Layout, Rect};
 use ratatui::style::Stylize;
 use ratatui::widgets::{
-    Block, Borders, HighlightSpacing, List, ListItem, ListState, Padding, Paragraph,
-    StatefulWidget, Widget, Wrap,
+    Block, Padding, Paragraph,
+    StatefulWidget, Widget,
 };
-use ratatui::{DefaultTerminal, symbols};
+use ratatui::DefaultTerminal;
 
 // #[derive(Debug, Default)]
 pub struct App {

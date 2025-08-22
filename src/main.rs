@@ -1,34 +1,46 @@
 use color_eyre::Result;
 use crossterm::event::{self, KeyCode, KeyEvent};
+use ratatui::DefaultTerminal;
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Alignment, Constraint, Layout, Rect};
-use ratatui::style::Stylize;
 use ratatui::style::Style;
-use ratatui::widgets::{
-    Block, Padding, Paragraph,
-    StatefulWidget, Widget, Borders, BorderType,
-};
-use ratatui::text::Line;
-use ratatui::DefaultTerminal;
+use ratatui::style::Stylize;
 use ratatui::symbols;
+use ratatui::text::Line;
+use ratatui::widgets::{Block, BorderType, Borders, Padding, Paragraph, StatefulWidget, Widget};
+use sqlx::sqlite::SqlitePool;
+use td::db::connections::init_db;
+use td::db::models::{TodoItem, TodoList};
 
 // #[derive(Debug, Default)]
 pub struct App {
-    status: i32,
+    pool: SqlitePool,
+    lists: Vec<TodoList>,
+    selected_list: Option<TodoList>,
+    selected_item: Option<TodoItem>,
     exit: bool,
 }
 
-// Default trait should "load" the initial state of the app
-impl Default for App {
-    fn default() -> Self {
+impl App {
+    /// Create new app instance
+    async fn new() -> Self {
+        // Init connection to db
+        let pool = init_db().await.expect("Failed to connect to database");
+
+        // Read the lists from db
+        let lists = TodoList::get_all(&pool)
+            .await
+            .expect("Failed to read lists");
+
         Self {
+            pool: pool,
+            lists: lists,
+            selected_list: None,
+            selected_item: None,
             exit: false,
-            status: 42,
         }
     }
-}
 
-impl App {
     /// Run the application
     fn run(mut self, terminal: &mut DefaultTerminal) -> Result<()> {
         while !self.exit {
@@ -101,13 +113,6 @@ impl App {
             .render(area, buf);
     }
 
-    // // Render footer with instructions
-    // fn render_footer(area: Rect, buf: &mut Buffer) {
-    //     Paragraph::new("Use ↓↑ to move, ← to unselect, → to change status, g/G to go top/bottom.")
-    //         .centered()
-    //         .render(area, buf);
-    // }
-
     // Render list of items
     fn render_lists(&mut self, area: Rect, buf: &mut Buffer) {
         let block = Block::default()
@@ -115,7 +120,7 @@ impl App {
             .title_top(Line::raw(" Lists ").centered())
             .title_bottom(" ↓↑ ")
             .title_alignment(Alignment::Center)
-            .borders(Borders::ALL)
+            .borders(Borders::TOP | Borders::LEFT | Borders::BOTTOM)
             .border_type(BorderType::Rounded);
 
         Paragraph::new("List area")
@@ -139,15 +144,18 @@ impl App {
             .block(block)
             .render(area, buf);
     }
-
 }
 
-fn main() -> Result<()> {
+#[tokio::main]
+async fn main() -> Result<()> {
     // Set the terminal up
     let mut terminal = ratatui::init();
 
+    // Set up the app
+    let app = App::new().await;
+
     // Crate and run the app
-    let app_result = App::default().run(&mut terminal);
+    let app_result = app.run(&mut terminal);
 
     ratatui::restore();
 

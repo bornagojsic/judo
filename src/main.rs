@@ -1,13 +1,16 @@
 use color_eyre::Result;
 use crossterm::event::{self, KeyCode, KeyEvent};
 use ratatui::buffer::Buffer;
-use ratatui::layout::{Constraint, Layout, Rect};
+use ratatui::layout::{Alignment, Constraint, Layout, Rect};
 use ratatui::style::Stylize;
+use ratatui::style::Style;
 use ratatui::widgets::{
     Block, Padding, Paragraph,
-    StatefulWidget, Widget,
+    StatefulWidget, Widget, Borders, BorderType,
 };
+use ratatui::text::Line;
 use ratatui::DefaultTerminal;
+use ratatui::symbols;
 
 // #[derive(Debug, Default)]
 pub struct App {
@@ -54,12 +57,11 @@ impl Widget for &mut App {
         // Define the main layout of the app
         let main_layout = Layout::vertical([
             Constraint::Percentage(20), // Header
-            Constraint::Percentage(70), // Main content
-            Constraint::Percentage(10), // Footer
+            Constraint::Percentage(80), // Main content
         ]);
 
         // Extract the areas from the main layout
-        let [header_area, content_area, footer_area] = main_layout.areas(area);
+        let [header_area, content_area] = main_layout.areas(area);
 
         // Further subdivide the content area into list area and item area
         let content_layout =
@@ -70,7 +72,6 @@ impl Widget for &mut App {
 
         // Render the four areas
         App::render_header(header_area, buf);
-        App::render_footer(footer_area, buf);
         self.render_lists(lists_area, buf);
         self.render_items(items_area, buf);
     }
@@ -100,88 +101,45 @@ impl App {
             .render(area, buf);
     }
 
-    // Render footer with instructions
-    fn render_footer(area: Rect, buf: &mut Buffer) {
-        Paragraph::new("Use ↓↑ to move, ← to unselect, → to change status, g/G to go top/bottom.")
-            .centered()
-            .render(area, buf);
-    }
+    // // Render footer with instructions
+    // fn render_footer(area: Rect, buf: &mut Buffer) {
+    //     Paragraph::new("Use ↓↑ to move, ← to unselect, → to change status, g/G to go top/bottom.")
+    //         .centered()
+    //         .render(area, buf);
+    // }
 
     // Render list of items
     fn render_lists(&mut self, area: Rect, buf: &mut Buffer) {
+        let block = Block::default()
+            .padding(Padding::horizontal(2))
+            .title_top(Line::raw(" Lists ").centered())
+            .title_bottom(" ↓↑ ")
+            .title_alignment(Alignment::Center)
+            .borders(Borders::ALL)
+            .border_type(BorderType::Rounded);
+
         Paragraph::new("List area")
-            .bold()
             .left_aligned()
+            .block(block)
             .render(area, buf);
     }
 
     // Render list of items
     fn render_items(&mut self, area: Rect, buf: &mut Buffer) {
+        let block = Block::default()
+            .padding(Padding::horizontal(2))
+            .title_top(Line::raw(" Items ").centered())
+            .title_bottom(" ↓↑ ")
+            .title_alignment(Alignment::Center)
+            .borders(Borders::ALL)
+            .border_type(BorderType::Rounded);
+
         Paragraph::new("Item area")
-            .bold()
             .left_aligned()
+            .block(block)
             .render(area, buf);
     }
 
-    // fn render_list(&mut self, area: Rect, buf: &mut Buffer) {
-    //     let block = Block::new()
-    //         .title(Line::raw("TODO List").centered())
-    //         .borders(Borders::TOP)
-    //         .border_set(symbols::border::EMPTY)
-    //         .border_style(TODO_HEADER_STYLE)
-    //         .bg(NORMAL_ROW_BG);
-
-    //     // Iterate through all elements in the `items` and stylize them.
-    //     let items: Vec<ListItem> = self
-    //         .todo_list
-    //         .items
-    //         .iter()
-    //         .enumerate()
-    //         .map(|(i, todo_item)| {
-    //             let color = alternate_colors(i);
-    //             ListItem::from(todo_item).bg(color)
-    //         })
-    //         .collect();
-
-    //     // Create a List from all list items and highlight the currently selected one
-    //     let list = List::new(items)
-    //         .block(block)
-    //         .highlight_style(SELECTED_STYLE)
-    //         .highlight_symbol(">")
-    //         .highlight_spacing(HighlightSpacing::Always);
-
-    //     // We need to disambiguate this trait method as both `Widget` and `StatefulWidget` share the
-    //     // same method name `render`.
-    //     StatefulWidget::render(list, area, buf, &mut self.todo_list.state);
-    // }
-
-    // fn render_selected_item(&self, area: Rect, buf: &mut Buffer) {
-    //     // We get the info depending on the item's state.
-    //     let info = if let Some(i) = self.todo_list.state.selected() {
-    //         match self.todo_list.items[i].status {
-    //             Status::Completed => format!("✓ DONE: {}", self.todo_list.items[i].info),
-    //             Status::Todo => format!("☐ TODO: {}", self.todo_list.items[i].info),
-    //         }
-    //     } else {
-    //         "Nothing selected...".to_string()
-    //     };
-
-    //     // We show the list item's info under the list in this paragraph
-    //     let block = Block::new()
-    //         .title(Line::raw("TODO Info").centered())
-    //         .borders(Borders::TOP)
-    //         .border_set(symbols::border::EMPTY)
-    //         .border_style(TODO_HEADER_STYLE)
-    //         .bg(NORMAL_ROW_BG)
-    //         .padding(Padding::horizontal(1));
-
-    //     // We can now render the item info
-    //     Paragraph::new(info)
-    //         .block(block)
-    //         .fg(TEXT_FG_COLOR)
-    //         .wrap(Wrap { trim: false })
-    //         .render(area, buf);
-    // }
 }
 
 fn main() -> Result<()> {

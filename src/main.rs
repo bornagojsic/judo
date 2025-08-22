@@ -58,26 +58,35 @@ impl App {
             KeyCode::Char('q') => self.exit = true,
             KeyCode::Char('s') => self.select_next_list(),
             KeyCode::Char('w') => self.select_previous_list(),
-            //KeyCode::Down => self.select_next_item(),
-            //KeyCode::Up => self.select_previous_item(),
+            KeyCode::Down => self.select_next_item(),
+            KeyCode::Up => self.select_previous_item(),
             _ => {}
         }
     }
 
+    /// Select next element in the list of to-do lists
     fn select_next_list(&mut self) {
         self.list_state.select_next();
     }
+
+    /// Select previous element in the list of to-do lists
     fn select_previous_list(&mut self) {
         self.list_state.select_previous();
     }
 
-    // fn select_next_item(&mut self) {
-    //     self.lists.state.select_first();
-    // }
+    /// Select next element in the list of to-do items
+    fn select_next_item(&mut self) {
+        if let Some(i) = self.list_state.selected() {
+            self.lists[i].item_state.select_next();
+        }
+    }
 
-    // fn select_previous_item(&mut self) {
-    //     self.todo_list.state.select_last();
-    // }
+    /// Select previous element in the list of to-do items
+    fn select_previous_item(&mut self) {
+        if let Some(i) = self.list_state.selected() {
+            self.lists[i].item_state.select_previous();
+        }
+    }
 }
 
 /// Widget trait implements the high-level rendering logic
@@ -132,12 +141,12 @@ impl App {
             .render(area, buf);
     }
 
-    // Render list of items
+    // Render list of to-do lists
     fn render_lists(&mut self, area: Rect, buf: &mut Buffer) {
         let block = Block::default()
             .padding(Padding::horizontal(2))
             .title_top(Line::raw(" Lists ").centered())
-            .title_bottom(" ↓↑ ")
+            .title_bottom(" w,s ")
             .title_alignment(Alignment::Center)
             .borders(Borders::TOP | Borders::LEFT | Borders::BOTTOM)
             .border_type(BorderType::Rounded);
@@ -164,11 +173,30 @@ impl App {
             .title_alignment(Alignment::Center)
             .borders(Borders::ALL)
             .border_type(BorderType::Rounded);
+        // Get the list selected by the user
+        if let Some(i) = self.list_state.selected() {
+            let selected_list = &mut self.lists[i];
 
-        Paragraph::new("Item area")
-            .left_aligned()
-            .block(block)
-            .render(area, buf);
+            // Extract the corresponding items
+            let items: Vec<ListItem> = selected_list
+                .items
+                .iter()
+                .map(|ui_item| ListItem::from(ui_item.item.name.clone()))
+                .collect();
+
+            let list: List = List::new(items)
+                .block(block)
+                .highlight_symbol(">")
+                .highlight_spacing(HighlightSpacing::Always);
+
+            StatefulWidget::render(list, area, buf, &mut selected_list.item_state);
+        } else {
+            Paragraph::new("Select a to-do list first")
+                .left_aligned()
+                .italic()
+                .block(block)
+                .render(area, buf);
+        }
     }
 }
 

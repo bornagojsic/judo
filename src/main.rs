@@ -63,6 +63,7 @@ impl App {
             KeyCode::Down => self.select_next_item(),
             KeyCode::Up => self.select_previous_item(),
             KeyCode::Left => self.remove_item_selection(),
+            KeyCode::Right => self.select_first_item(),
             _ => {}
         }
     }
@@ -98,16 +99,27 @@ impl App {
         }
     }
 
+    /// The right arrow is not really meant to be there
+    /// but it's useful because of user's muscle memory
+    fn select_first_item(&mut self) {
+        if let Some(i) = self.list_state.selected()
+            && let None = self.lists[i].item_state.selected()
+        {
+            self.lists[i].item_state.select_first();
+        }
+    }
+
     /// Toggle "is_done"
     async fn toggle_done(&mut self) {
         if let Some(i) = self.list_state.selected()
-            && let Some(j) = self.lists[i].item_state.selected() {
-                self.lists[i].items[j]
-                    .item
-                    .toggle_done(&self.pool)
-                    .await
-                    .expect("Unable to toggle status");
-            }
+            && let Some(j) = self.lists[i].item_state.selected()
+        {
+            self.lists[i].items[j]
+                .item
+                .toggle_done(&self.pool)
+                .await
+                .expect("Unable to toggle status");
+        }
     }
 }
 

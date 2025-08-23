@@ -3,8 +3,8 @@ use crossterm::event::{self, KeyCode, KeyEvent};
 use ratatui::DefaultTerminal;
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Alignment, Constraint, Layout, Rect};
-use ratatui::style::{Color, Style, Stylize};
-use ratatui::text::Line;
+use ratatui::style::{Color, Modifier, Style, Stylize};
+use ratatui::text::{Line, Span};
 use ratatui::widgets::{
     Block, BorderType, Borders, HighlightSpacing, List, ListItem, ListState, Padding, Paragraph,
     StatefulWidget, Widget,
@@ -12,7 +12,7 @@ use ratatui::widgets::{
 use sqlx::sqlite::SqlitePool;
 use std::str::FromStr;
 use td::db::connections::init_db;
-use td::db::models::UIList;
+use td::db::models::{UIItem, UIList};
 
 //#[derive(Debug, Default)]
 pub struct App {
@@ -43,22 +43,23 @@ impl App {
     }
 
     /// Run the application
-    fn run(mut self, terminal: &mut DefaultTerminal) -> Result<()> {
+    async fn run(mut self, terminal: &mut DefaultTerminal) -> Result<()> {
         while !self.exit {
             terminal.draw(|frame| frame.render_widget(&mut self, frame.area()))?;
             if let Some(key) = event::read()?.as_key_press_event() {
-                self.handle_key(key);
+                self.handle_key(key).await;
             }
         }
         Ok(())
     }
 
     /// Handle key press from user
-    fn handle_key(&mut self, key: KeyEvent) {
+    async fn handle_key(&mut self, key: KeyEvent) {
         match key.code {
             KeyCode::Char('q') => self.exit = true,
             KeyCode::Char('s') => self.select_next_list(),
             KeyCode::Char('w') => self.select_previous_list(),
+            KeyCode::Char('d') => self.toggle_done().await,
             KeyCode::Down => self.select_next_item(),
             KeyCode::Up => self.select_previous_item(),
             KeyCode::Left => self.remove_item_selection(),
@@ -94,6 +95,19 @@ impl App {
     fn remove_item_selection(&mut self) {
         if let Some(i) = self.list_state.selected() {
             self.lists[i].item_state.select(None);
+        }
+    }
+
+    /// Toggle "is_done"
+    async fn toggle_done(&mut self) {
+        if let Some(i) = self.list_state.selected() {
+            if let Some(j) = self.lists[i].item_state.selected() {
+                self.lists[i].items[j]
+                    .item
+                    .toggle_done(&self.pool)
+                    .await
+                    .expect("Unable to toggle status");
+            }
         }
     }
 }
@@ -174,7 +188,7 @@ impl App {
             .collect();
         let list: List = List::new(items)
             .block(block)
-            .highlight_symbol(" ▸ ")  // Rounded bottom-left corner character
+            .highlight_symbol(" ▸ ") // Rounded bottom-left corner character
             .highlight_style(
                 // Swap foreground and background
                 Style::default()
@@ -186,7 +200,18 @@ impl App {
         StatefulWidget::render(list, area, buf, &mut self.list_state)
     }
 
-    // Render list of items
+    /// Style the item
+    fn style_item(ui_item: &UIItem) -> Span<'_> {
+        let name = ui_item.item.name.clone();
+
+        if ui_item.item.is_done {
+            Span::styled(name, Style::default().add_modifier(Modifier::CROSSED_OUT)).into()
+        } else {
+            Span::from(name).into()
+        }
+    }
+
+    /// Render list of items
     fn render_items(&mut self, area: Rect, buf: &mut Buffer) {
         let block = Block::default()
             .padding(Padding::horizontal(2))
@@ -203,7 +228,8 @@ impl App {
             let items: Vec<ListItem> = selected_list
                 .items
                 .iter()
-                .map(|ui_item| ListItem::from(ui_item.item.name.clone()))
+                .map(|ui_item| ListItem::from(App::style_item(ui_item)))
+                //.map(|ui_item| ListItem::from(ui_item.item.name.clone()))
                 .collect();
 
             let list: List = List::new(items)
@@ -236,7 +262,7 @@ async fn main() -> Result<()> {
     let app = App::new().await;
 
     // Crate and run the app
-    let app_result = app.run(&mut terminal);
+    let app_result = app.run(&mut terminal).await;
 
     ratatui::restore();
 

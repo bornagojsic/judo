@@ -61,6 +61,7 @@ impl App {
             KeyCode::Char('w') => self.select_previous_list(),
             KeyCode::Down => self.select_next_item(),
             KeyCode::Up => self.select_previous_item(),
+            KeyCode::Left => self.remove_item_selection(),
             _ => {}
         }
     }
@@ -86,6 +87,13 @@ impl App {
     fn select_previous_item(&mut self) {
         if let Some(i) = self.list_state.selected() {
             self.lists[i].item_state.select_previous();
+        }
+    }
+
+    /// Select previous element in the list of to-do items
+    fn remove_item_selection(&mut self) {
+        if let Some(i) = self.list_state.selected() {
+            self.lists[i].item_state.select(None);
         }
     }
 }
@@ -166,7 +174,7 @@ impl App {
             .collect();
         let list: List = List::new(items)
             .block(block)
-            .highlight_symbol(" ▸ ")
+            .highlight_symbol(" ▸ ")  // Rounded bottom-left corner character
             .highlight_style(
                 // Swap foreground and background
                 Style::default()

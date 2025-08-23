@@ -100,15 +100,14 @@ impl App {
 
     /// Toggle "is_done"
     async fn toggle_done(&mut self) {
-        if let Some(i) = self.list_state.selected() {
-            if let Some(j) = self.lists[i].item_state.selected() {
+        if let Some(i) = self.list_state.selected()
+            && let Some(j) = self.lists[i].item_state.selected() {
                 self.lists[i].items[j]
                     .item
                     .toggle_done(&self.pool)
                     .await
                     .expect("Unable to toggle status");
             }
-        }
     }
 }
 
@@ -205,9 +204,9 @@ impl App {
         let name = ui_item.item.name.clone();
 
         if ui_item.item.is_done {
-            Span::styled(name, Style::default().add_modifier(Modifier::CROSSED_OUT)).into()
+            Span::styled(name, Style::default().add_modifier(Modifier::CROSSED_OUT))
         } else {
-            Span::from(name).into()
+            Span::from(name)
         }
     }
 

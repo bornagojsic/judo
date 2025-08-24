@@ -296,10 +296,31 @@ impl App {
 
     // Render list of to-do lists
     fn render_lists(&mut self, area: Rect, buf: &mut Buffer) {
+        // Command hints for lists
+        let list_command_hints = Line::from(vec![
+            Span::styled(" w,s ", Style::default()),
+            Span::styled(
+                "[A]",
+                Style::default().fg(Color::from_str("#FFA69E").unwrap()),
+            ),
+            Span::styled(
+                "dd",
+                Style::default().fg(Color::from_str("#F0EAD8").unwrap()),
+            ),
+            Span::styled(
+                " [D]",
+                Style::default().fg(Color::from_str("#FFA69E").unwrap()),
+            ),
+            Span::styled(
+                "el ",
+                Style::default().fg(Color::from_str("#F0EAD8").unwrap()),
+            ),
+        ]);
+
         let block = Block::default()
             .padding(Padding::horizontal(2))
             .title_top(Line::raw(" Lists ").centered())
-            .title_bottom(" w,s ")
+            .title_bottom(list_command_hints)
             .title_alignment(Alignment::Center)
             .borders(Borders::TOP | Borders::LEFT | Borders::BOTTOM)
             .border_type(BorderType::Rounded);
@@ -377,6 +398,18 @@ impl App {
 
     /// Render pop-up for entering a new list (only name is required)
     fn render_add_list(&mut self, area: Rect, buf: &mut Buffer) {
+        // Command hints for lists
+        let add_list_command_hints = Line::from(vec![
+            Span::styled(
+                "[E]",
+                Style::default().fg(Color::from_str("#FFA69E").unwrap()),
+            ),
+            Span::styled(
+                "sc",
+                Style::default().fg(Color::from_str("#F0EAD8").unwrap()),
+            ),
+        ]);
+
         // Calculate popup dimensions
         let popup_width = (area.width * 3) / 4; // 75% of the area width
         let popup_height = 4; // Fixed height for just the input field
@@ -404,6 +437,7 @@ impl App {
         let popup_block = Block::new()
             .title(" Add List ")
             .title_style(Style::new().fg(Color::from_str("#F0EAD8").unwrap()).bold())
+            .title_bottom(add_list_command_hints)
             .borders(Borders::ALL)
             .border_style(Style::new().fg(Color::from_str("#F0EAD8").unwrap()))
             .border_type(BorderType::Rounded)

@@ -31,7 +31,7 @@ impl TodoList {
     /// Get all todo lists
     pub async fn get_all(pool: &SqlitePool) -> Result<Vec<TodoList>> {
         let lists = sqlx::query_as::<_, TodoList>(
-            "SELECT id, name, created_at, updated_at FROM todo_lists ORDER BY created_at DESC",
+            "SELECT id, name, created_at, updated_at FROM todo_lists ORDER BY created_at",
         )
         .fetch_all(pool)
         .await

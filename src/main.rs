@@ -12,7 +12,7 @@ use ratatui::widgets::{
 use sqlx::sqlite::SqlitePool;
 use std::str::FromStr;
 use td::db::connections::init_db;
-use td::db::models::{UIItem, UIList};
+use td::db::models::{NewTodoItem, NewTodoList, TodoItem, TodoList, UIItem, UIList};
 
 //#[derive(Debug, Default)]
 pub struct App {
@@ -89,9 +89,10 @@ impl App {
     /// Handle key press from user in add list
     async fn handle_key_in_add_list_screen(&mut self, key: KeyEvent) {
         match key.code {
-            KeyCode::Esc => self.current_screen = CurrentScreen::Main,
+            KeyCode::Esc => self.exit_add_list_without_saving(),
             KeyCode::Backspace => self.remove_char_from_new_list_name(),
             KeyCode::Char(value) => self.add_char_to_new_list_name(value),
+            KeyCode::Enter => self.create_new_list().await,
             _ => {}
         }
     }
@@ -171,6 +172,39 @@ impl App {
     /// Add char to new list name
     fn add_char_to_new_list_name(&mut self, value: char) {
         self.current_new_list_name.push(value);
+    }
+
+    /// Exit the Add List screen without saving
+    fn exit_add_list_without_saving(&mut self) {
+        // Go back to main screen
+        self.current_screen = CurrentScreen::Main;
+
+        // Erase any change in the new list name because the user exited without submitting
+        self.current_new_list_name = String::new();
+    }
+
+    /// Save new list to database
+    async fn create_new_list(&mut self) {
+        // Create a new todo list
+        let new_list = NewTodoList {
+            name: self.current_new_list_name.clone(),
+        };
+
+        // Write new list to db
+        TodoList::create(&self.pool, new_list)
+            .await
+            .expect("Unable to add new list");
+
+        // Go back to main
+        self.current_screen = CurrentScreen::Main;
+
+        // Re-init the new list variable
+        self.current_new_list_name = String::new();
+
+        // Re-set the list of lists
+        self.lists = UIList::get_all(&self.pool)
+            .await
+            .expect("Failed to read lists")
     }
 }
 
@@ -319,6 +353,7 @@ impl App {
         }
     }
 
+    /// Render pop-up for entering a new list (only name is required)
     fn render_add_list(&mut self, area: Rect, buf: &mut Buffer) {
         // Calculate popup dimensions
         let popup_width = (area.width * 3) / 4; // 75% of the area width
@@ -352,8 +387,23 @@ impl App {
             .border_type(BorderType::Rounded)
             .padding(Padding::horizontal(1));
 
-        Paragraph::new(self.current_new_list_name.clone())
-            .style(Style::new().fg(Color::from_str("#F0EAD8").unwrap()))
+        // Define the text to render with a blinking character at the end
+        // Doesn't appear in Warp
+        let text_line = Line::from(vec![
+            Span::styled(
+                self.current_new_list_name.clone(),
+                Style::default().fg(Color::from_str("#F0EAD8").unwrap()),
+            ), // Text
+            Span::styled(
+                "█",
+                Style::default()
+                    .fg(Color::from_str("#F0EAD8").unwrap())
+                    .add_modifier(Modifier::RAPID_BLINK), // Blinking cursor
+            ),
+        ]);
+
+        // Render
+        Paragraph::new(text_line)
             .block(popup_block)
             .render(popup_area, buf);
     }

@@ -75,8 +75,9 @@ impl App {
             KeyCode::Char('q') => self.exit = true,
             KeyCode::Char('s') => self.select_next_list(),
             KeyCode::Char('w') => self.select_previous_list(),
-            KeyCode::Char('d') => self.toggle_done().await,
-            KeyCode::Char('a') => self.enter_add_list_screen(),
+            KeyCode::Char('A') => self.enter_add_list_screen(),
+            KeyCode::Char('D') => self.delete_list().await,
+            KeyCode::Enter => self.toggle_done().await,
             KeyCode::Down => self.select_next_item(),
             KeyCode::Up => self.select_previous_item(),
             KeyCode::Left => self.remove_item_selection(),
@@ -204,6 +205,28 @@ impl App {
         self.lists = UIList::get_all(&self.pool)
             .await
             .expect("Failed to read lists")
+    }
+
+    /// Delete list
+    async fn delete_list(&mut self) {
+        if let Some(i) = self.list_state.selected() {
+            let list = self.lists[i].list.clone();
+            list.delete(&self.pool)
+                .await
+                .expect("Unable to delete list");
+
+            // Refresh the lists from database
+            self.lists = UIList::get_all(&self.pool)
+                .await
+                .expect("Failed to read lists");
+
+            // Adjust selection after deletion
+            if self.lists.is_empty() {
+                self.list_state.select(None);
+            } else if i >= self.lists.len() {
+                self.list_state.select(Some(self.lists.len() - 1));
+            }
+        }
     }
 }
 

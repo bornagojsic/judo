@@ -10,7 +10,7 @@ pub enum Priority {
     Low,
 }
 
-#[derive(Debug, FromRow)]
+#[derive(Debug, FromRow, Clone)]
 pub struct TodoList {
     pub id: i64,
     pub name: String,

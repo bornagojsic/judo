@@ -270,7 +270,7 @@ impl App {
             // Create a new todo list
             let new_item = NewTodoItem {
                 name: self.current_new_item_name.clone(),
-                list_id: list_id,
+                list_id,
                 priority: None,
                 due_date: None,
             };

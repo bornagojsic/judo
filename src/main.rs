@@ -449,10 +449,31 @@ impl App {
 
     /// Render list of items
     fn render_items(&mut self, area: Rect, buf: &mut Buffer) {
+        // Command hints for items
+        let list_command_hints = Line::from(vec![
+            Span::styled(" ↓↑ ", Style::default()),
+            Span::styled(
+                "[a]",
+                Style::default().fg(Color::from_str("#FFA69E").unwrap()),
+            ),
+            Span::styled(
+                "dd",
+                Style::default().fg(Color::from_str("#F0EAD8").unwrap()),
+            ),
+            Span::styled(
+                " [d]",
+                Style::default().fg(Color::from_str("#FFA69E").unwrap()),
+            ),
+            Span::styled(
+                "el ",
+                Style::default().fg(Color::from_str("#F0EAD8").unwrap()),
+            ),
+        ]);
+
         let block = Block::default()
             .padding(Padding::horizontal(2))
             .title_top(Line::raw(" Items ").centered())
-            .title_bottom(" ↓↑ ")
+            .title_bottom(list_command_hints)
             .title_alignment(Alignment::Center)
             .borders(Borders::ALL)
             .border_type(BorderType::Rounded);

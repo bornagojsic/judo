@@ -1,4 +1,4 @@
-# td
+# judo
 TUI for to-do lists
 
 ## Widgets

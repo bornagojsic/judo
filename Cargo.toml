@@ -1,14 +1,14 @@
 [package]
-name = "td"
+name = "judo"
 version = "1.0.0"
 edition = "2024"
 
 [[bin]]
-name = "td"
+name = "judo"
 path = "src/main.rs"
 
 [lib]
-name = "td"
+name = "judo"
 path = "src/lib.rs"
 
 [dependencies]

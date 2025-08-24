@@ -7,7 +7,7 @@ fn get_db_connection_str() -> Result<String> {
     // Use data directory to standardize storage
     let data_dir = dirs::data_dir()
         .with_context(|| "Unable to find data directory")?
-        .join("td");
+        .join("judo");
 
     // Create directory
     std::fs::create_dir_all(&data_dir).with_context(|| "Unable to create data directory")?;

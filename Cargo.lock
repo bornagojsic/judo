@@ -912,6 +912,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "judo"
+version = "1.0.0"
+dependencies = [
+ "anyhow",
+ "chrono",
+ "color-eyre",
+ "crossterm 0.29.0",
+ "dirs",
+ "ratatui",
+ "sqlx",
+ "tokio",
+]
+
+[[package]]
 name = "lazy_static"
 version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1814,20 +1828,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
-]
-
-[[package]]
-name = "td"
-version = "1.0.0"
-dependencies = [
- "anyhow",
- "chrono",
- "color-eyre",
- "crossterm 0.29.0",
- "dirs",
- "ratatui",
- "sqlx",
- "tokio",
 ]
 
 [[package]]

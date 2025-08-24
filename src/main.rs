@@ -1,5 +1,7 @@
 use color_eyre::Result;
 use crossterm::event::{self, KeyCode, KeyEvent};
+use judo::db::connections::init_db;
+use judo::db::models::{NewTodoItem, NewTodoList, TodoItem, TodoList, UIItem, UIList};
 use ratatui::DefaultTerminal;
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Alignment, Constraint, Layout, Rect};
@@ -11,8 +13,6 @@ use ratatui::widgets::{
 };
 use sqlx::sqlite::SqlitePool;
 use std::str::FromStr;
-use td::db::connections::init_db;
-use td::db::models::{NewTodoItem, NewTodoList, TodoItem, TodoList, UIItem, UIList};
 
 pub struct App {
     current_screen: CurrentScreen,
@@ -333,10 +333,21 @@ impl Widget for &mut App {
             Block::default().style(Style::default().bg(background_color).fg(foreground_color));
         background.render(area, buf);
 
-        // Define the main layout of the app
+        // Calculate responsive header height
+        let header_height = if area.height < 15 {
+            // Very small terminal - minimal header
+            Constraint::Length(3)
+        } else if area.height < 25 {
+            // Small terminal - reduced header
+            Constraint::Length(8)
+        } else {
+            // Normal terminal - full header
+            Constraint::Percentage(20)
+        };
+
         let main_layout = Layout::vertical([
-            Constraint::Percentage(20), // Header
-            Constraint::Percentage(80), // Main content
+            header_height,
+            Constraint::Min(10), // Ensure minimum content area
         ]);
 
         // Extract the areas from the main layout
@@ -365,14 +376,14 @@ impl Widget for &mut App {
 impl App {
     // Render the header
     fn render_header(area: Rect, buf: &mut Buffer) {
-        // Use the td ascii logo
+        // Use the judo ascii logo
         let ascii_logo = r#"
-████████╗  ██████═╗ 
-╚══██╔══╝  ██╔═══██╗
-   ██║     ██║   ██║
-   ██║     ██║   ██║
-   ██║     ██████╔═╝
-   ╚═╝     ╚═════╝
+     ██╗██╗   ██╗██████╗  ██████╗ 
+     ██║██║   ██║██╔══██╗██╔═══██╗
+     ██║██║   ██║██║  ██║██║   ██║
+██   ██║██║   ██║██║  ██║██║   ██║
+╚█████╔╝╚██████╔╝██████╔╝╚██████╔╝
+ ╚════╝  ╚═════╝ ╚═════╝  ╚═════╝ 
         "#;
 
         // Define a block and pad. Can't pad on a paragraph, so we need to insert the paragraph inside

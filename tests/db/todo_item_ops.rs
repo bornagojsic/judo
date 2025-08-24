@@ -1,7 +1,7 @@
 use crate::helpers::db::setup_test_db;
 use anyhow::Result;
 use chrono::{Duration, Utc};
-use td::db::models::{NewTodoItem, NewTodoList, Priority, TodoItem, TodoList};
+use judo::db::models::{NewTodoItem, NewTodoList, Priority, TodoItem, TodoList};
 
 #[tokio::test]
 async fn test_todo_item_crud_operations() -> Result<()> {

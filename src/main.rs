@@ -7,14 +7,13 @@ use ratatui::style::{Color, Modifier, Style, Stylize};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{
     Block, BorderType, Borders, HighlightSpacing, List, ListItem, ListState, Padding, Paragraph,
-    StatefulWidget, Widget,
+    StatefulWidget, Widget, Wrap,
 };
 use sqlx::sqlite::SqlitePool;
 use std::str::FromStr;
 use td::db::connections::init_db;
 use td::db::models::{NewTodoItem, NewTodoList, TodoItem, TodoList, UIItem, UIList};
 
-//#[derive(Debug, Default)]
 pub struct App {
     current_screen: CurrentScreen,
     pool: SqlitePool,
@@ -357,7 +356,7 @@ impl App {
     fn render_add_list(&mut self, area: Rect, buf: &mut Buffer) {
         // Calculate popup dimensions
         let popup_width = (area.width * 3) / 4; // 75% of the area width
-        let popup_height = area.height / 6; // 33% of the area height
+        let popup_height = 4; // Fixed height for just the input field
 
         // Center horizontally within the area
         let popup_x = area.x + (area.width.saturating_sub(popup_width)) / 2;
@@ -402,8 +401,9 @@ impl App {
             ),
         ]);
 
-        // Render
+        // Render with center alignment
         Paragraph::new(text_line)
+            .wrap(Wrap { trim: true })
             .block(popup_block)
             .render(popup_area, buf);
     }

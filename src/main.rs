@@ -16,15 +16,26 @@ use td::db::models::{UIItem, UIList};
 
 //#[derive(Debug, Default)]
 pub struct App {
+    current_screen: CurrentScreen,
     pool: SqlitePool,
     lists: Vec<UIList>,
     list_state: ListState,
+    current_new_list_name: String,
     exit: bool,
+}
+
+pub enum CurrentScreen {
+    Main,
+    AddList,
+    AddItem,
 }
 
 impl App {
     /// Create new app instance
     async fn new() -> Self {
+        // Start from main screen
+        let current_screen = CurrentScreen::Main;
+
         // Init connection to db
         let pool = init_db().await.expect("Failed to connect to database");
 
@@ -35,9 +46,11 @@ impl App {
         let list_state = ListState::default();
 
         Self {
+            current_screen,
             pool,
             lists,
             list_state,
+            current_new_list_name: String::new(),
             exit: false,
         }
     }
@@ -47,23 +60,46 @@ impl App {
         while !self.exit {
             terminal.draw(|frame| frame.render_widget(&mut self, frame.area()))?;
             if let Some(key) = event::read()?.as_key_press_event() {
-                self.handle_key(key).await;
+                match self.current_screen {
+                    CurrentScreen::Main => self.handle_key_in_main_screen(key).await,
+                    CurrentScreen::AddList => self.handle_key_in_add_list_screen(key).await,
+                    CurrentScreen::AddItem => self.handle_key_in_add_item_screen(key).await,
+                }
             }
         }
         Ok(())
     }
 
-    /// Handle key press from user
-    async fn handle_key(&mut self, key: KeyEvent) {
+    /// Handle key press from user in main screen
+    async fn handle_key_in_main_screen(&mut self, key: KeyEvent) {
         match key.code {
             KeyCode::Char('q') => self.exit = true,
             KeyCode::Char('s') => self.select_next_list(),
             KeyCode::Char('w') => self.select_previous_list(),
             KeyCode::Char('d') => self.toggle_done().await,
+            KeyCode::Char('a') => self.enter_add_list_screen(),
             KeyCode::Down => self.select_next_item(),
             KeyCode::Up => self.select_previous_item(),
             KeyCode::Left => self.remove_item_selection(),
             KeyCode::Right => self.select_first_item(),
+            _ => {}
+        }
+    }
+
+    /// Handle key press from user in add list
+    async fn handle_key_in_add_list_screen(&mut self, key: KeyEvent) {
+        match key.code {
+            KeyCode::Esc => self.current_screen = CurrentScreen::Main,
+            KeyCode::Backspace => self.remove_char_from_new_list_name(),
+            KeyCode::Char(value) => self.add_char_to_new_list_name(value),
+            _ => {}
+        }
+    }
+
+    /// Handle key press from user in add item
+    async fn handle_key_in_add_item_screen(&mut self, key: KeyEvent) {
+        match key.code {
+            KeyCode::Esc => self.current_screen = CurrentScreen::Main,
             _ => {}
         }
     }
@@ -121,6 +157,21 @@ impl App {
                 .expect("Unable to toggle status");
         }
     }
+
+    /// Enter the "Add List" by opening the corresponding pop-up
+    fn enter_add_list_screen(&mut self) {
+        self.current_screen = CurrentScreen::AddList;
+    }
+
+    /// Remove last char from new list name
+    fn remove_char_from_new_list_name(&mut self) {
+        self.current_new_list_name.pop();
+    }
+
+    /// Add char to new list name
+    fn add_char_to_new_list_name(&mut self, value: char) {
+        self.current_new_list_name.push(value);
+    }
 }
 
 /// Widget trait implements the high-level rendering logic
@@ -151,10 +202,15 @@ impl Widget for &mut App {
         // Extract the areas for lists and items
         let [lists_area, items_area] = content_layout.areas(content_area);
 
-        // Render the four areas
+        // Render the main areas
         App::render_header(header_area, buf);
         self.render_lists(lists_area, buf);
         self.render_items(items_area, buf);
+
+        match self.current_screen {
+            CurrentScreen::AddList => self.render_add_list(lists_area, buf),
+            _ => {}
+        }
     }
 }
 
@@ -261,6 +317,45 @@ impl App {
                 .block(block)
                 .render(area, buf);
         }
+    }
+
+    fn render_add_list(&mut self, area: Rect, buf: &mut Buffer) {
+        // Calculate popup dimensions
+        let popup_width = (area.width * 3) / 4; // 75% of the area width
+        let popup_height = area.height / 6; // 33% of the area height
+
+        // Center horizontally within the area
+        let popup_x = area.x + (area.width.saturating_sub(popup_width)) / 2;
+
+        // Center vertically within the area
+        let popup_y = area.y + (area.height.saturating_sub(popup_height)) / 2;
+
+        // Define the pop-up area
+        let popup_area = Rect {
+            x: popup_x,
+            y: popup_y,
+            width: popup_width,
+            height: popup_height,
+        };
+
+        // Clear the background of the popup area first
+        Block::default()
+            .style(Style::default().bg(Color::from_str("#002626").unwrap()))
+            .render(popup_area, buf);
+
+        // Define the block
+        let popup_block = Block::new()
+            .title(" Add List ")
+            .title_style(Style::new().fg(Color::from_str("#F0EAD8").unwrap()).bold())
+            .borders(Borders::ALL)
+            .border_style(Style::new().fg(Color::from_str("#F0EAD8").unwrap()))
+            .border_type(BorderType::Rounded)
+            .padding(Padding::horizontal(1));
+
+        Paragraph::new(self.current_new_list_name.clone())
+            .style(Style::new().fg(Color::from_str("#F0EAD8").unwrap()))
+            .block(popup_block)
+            .render(popup_area, buf);
     }
 }
 

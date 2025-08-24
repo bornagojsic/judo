@@ -9,7 +9,6 @@ readme = "README.md"
 homepage = "https://github.com/giacomopiccinini/judo"
 repository = "https://github.com/giacomopiccinini/judo"
 keywords = ["tui", "todo"]
-categories = ["terminal-user-interface"]
 
 [[bin]]
 name = "judo"

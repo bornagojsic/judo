@@ -2,7 +2,6 @@
 
 [![Crates.io](https://img.shields.io/crates/v/judo.svg)](https://crates.io/crates/judo)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Build Status](https://img.shields.io/github/actions/workflow/status/username/judo/ci.yml?branch=main)](https://github.com/username/judo/actions)
 
 ```
      ██╗██╗   ██╗██████╗  ██████╗ 

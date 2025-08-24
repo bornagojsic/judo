@@ -1,3 +1,5 @@
+//! Judo - A terminal-based todo list application
+
 use color_eyre::Result;
 use crossterm::event::{self, KeyCode, KeyEvent};
 use judo::db::connections::init_db;
@@ -14,24 +16,39 @@ use ratatui::widgets::{
 use sqlx::sqlite::SqlitePool;
 use std::str::FromStr;
 
+/// Main application state
 pub struct App {
+    /// Current active screen (Main, AddList, or AddItem)
     current_screen: CurrentScreen,
+    /// Database connection pool
     pool: SqlitePool,
+    /// Vector of todo lists with their UI state
     lists: Vec<UIList>,
+    /// State for the list selection widget
     list_state: ListState,
+    /// Buffer for new list name input
     current_new_list_name: String,
+    /// Buffer for new item name input
     current_new_item_name: String,
+    /// Flag to indicate if the application should exit
     exit: bool,
 }
 
+/// Enum representing the different screens in the application
 pub enum CurrentScreen {
+    /// Main screen showing lists and items
     Main,
+    /// Pop-up screen for adding a new list
     AddList,
+    /// Pop-up screen for adding a new item
     AddItem,
 }
 
 impl App {
     /// Create new app instance
+    ///
+    /// Initializes the database connection, loads existing lists from the database,
+    /// and sets up the initial UI state.
     async fn new() -> Self {
         // Start from main screen
         let current_screen = CurrentScreen::Main;
@@ -57,9 +74,15 @@ impl App {
     }
 
     /// Run the application
+    ///
+    /// Main event loop that handles terminal drawing and user input.
+    /// Continues until the user exits the application.
     async fn run(mut self, terminal: &mut DefaultTerminal) -> Result<()> {
         while !self.exit {
+            // Draw the current state of the application
             terminal.draw(|frame| frame.render_widget(&mut self, frame.area()))?;
+
+            // Handle keyboard input based on current screen
             if let Some(key) = event::read()?.as_key_press_event() {
                 match self.current_screen {
                     CurrentScreen::Main => self.handle_key_in_main_screen(key).await,
@@ -72,42 +95,51 @@ impl App {
     }
 
     /// Handle key press from user in main screen
+    ///
+    /// Processes keyboard input when the user is on the main screen.
+    /// Handles navigation, item operations, and screen transitions.
     async fn handle_key_in_main_screen(&mut self, key: KeyEvent) {
         match key.code {
-            KeyCode::Char('q') => self.exit = true,
-            KeyCode::Char('s') => self.select_next_list(),
-            KeyCode::Char('w') => self.select_previous_list(),
-            KeyCode::Char('A') => self.enter_add_list_screen(),
-            KeyCode::Char('a') => self.enter_add_item_screen(),
-            KeyCode::Char('D') => self.delete_list().await,
-            KeyCode::Char('d') => self.delete_item().await,
-            KeyCode::Enter => self.toggle_done().await,
-            KeyCode::Down => self.select_next_item(),
-            KeyCode::Up => self.select_previous_item(),
-            KeyCode::Left => self.remove_item_selection(),
-            KeyCode::Right => self.select_first_item(),
+            KeyCode::Char('q') => self.exit = true, // Quit application
+            KeyCode::Char('s') => self.select_next_list(), // Navigate down in lists
+            KeyCode::Char('w') => self.select_previous_list(), // Navigate up in lists
+            KeyCode::Char('A') => self.enter_add_list_screen(), // Add new list
+            KeyCode::Char('a') => self.enter_add_item_screen(), // Add new item
+            KeyCode::Char('D') => self.delete_list().await, // Delete selected list
+            KeyCode::Char('d') => self.delete_item().await, // Delete selected item
+            KeyCode::Enter => self.toggle_done().await, // Toggle item completion
+            KeyCode::Down => self.select_next_item(), // Navigate down in items
+            KeyCode::Up => self.select_previous_item(), // Navigate up in items
+            KeyCode::Left => self.remove_item_selection(), // Deselect item
+            KeyCode::Right => self.select_first_item(), // Select first item
             _ => {}
         }
     }
 
-    /// Handle key press from user in add list
+    /// Handle key press from user in add list screen
+    ///
+    /// Processes keyboard input when the user is adding a new list.
+    /// Handles text input and submission/cancellation.
     async fn handle_key_in_add_list_screen(&mut self, key: KeyEvent) {
         match key.code {
-            KeyCode::Esc => self.exit_add_list_without_saving(),
-            KeyCode::Backspace => self.remove_char_from_new_list_name(),
-            KeyCode::Char(value) => self.add_char_to_new_list_name(value),
-            KeyCode::Enter => self.create_new_list().await,
+            KeyCode::Esc => self.exit_add_list_without_saving(), // Cancel without saving
+            KeyCode::Backspace => self.remove_char_from_new_list_name(), // Delete character
+            KeyCode::Char(value) => self.add_char_to_new_list_name(value), // Add character
+            KeyCode::Enter => self.create_new_list().await,      // Submit new list
             _ => {}
         }
     }
 
-    /// Handle key press from user in add item
+    /// Handle key press from user in add item screen
+    ///
+    /// Processes keyboard input when the user is adding a new item.
+    /// Handles text input and submission/cancellation.
     async fn handle_key_in_add_item_screen(&mut self, key: KeyEvent) {
         match key.code {
-            KeyCode::Esc => self.exit_add_item_without_saving(),
-            KeyCode::Backspace => self.remove_char_from_new_item_name(),
-            KeyCode::Char(value) => self.add_char_to_new_item_name(value),
-            KeyCode::Enter => self.create_new_item().await,
+            KeyCode::Esc => self.exit_add_item_without_saving(), // Cancel without saving
+            KeyCode::Backspace => self.remove_char_from_new_item_name(), // Delete character
+            KeyCode::Char(value) => self.add_char_to_new_item_name(value), // Add character
+            KeyCode::Enter => self.create_new_item().await,      // Submit new item
             _ => {}
         }
     }
@@ -123,6 +155,8 @@ impl App {
     }
 
     /// Select next element in the list of to-do items
+    ///
+    /// Only works if a list is currently selected.
     fn select_next_item(&mut self) {
         if let Some(i) = self.list_state.selected() {
             self.lists[i].item_state.select_next();
@@ -130,21 +164,27 @@ impl App {
     }
 
     /// Select previous element in the list of to-do items
+    ///
+    /// Only works if a list is currently selected.
     fn select_previous_item(&mut self) {
         if let Some(i) = self.list_state.selected() {
             self.lists[i].item_state.select_previous();
         }
     }
 
-    /// Select previous element in the list of to-do items
+    /// Remove item selection (deselect current item)
+    ///
+    /// Clears the item selection while keeping the list selected.
     fn remove_item_selection(&mut self) {
         if let Some(i) = self.list_state.selected() {
             self.lists[i].item_state.select(None);
         }
     }
 
-    /// The right arrow is not really meant to be there
-    /// but it's useful because of user's muscle memory
+    /// Select the first item in the currently selected list
+    ///
+    /// The right arrow is not really meant to be there but it's useful
+    /// because of user's muscle memory. Only selects if no item is currently selected.
     fn select_first_item(&mut self) {
         if let Some(i) = self.list_state.selected()
             && let None = self.lists[i].item_state.selected()
@@ -153,7 +193,9 @@ impl App {
         }
     }
 
-    /// Toggle "is_done"
+    /// Toggle the "is_done" status of the currently selected item
+    ///
+    /// Updates the item status in the database and refreshes the UI.
     async fn toggle_done(&mut self) {
         if let Some(i) = self.list_state.selected()
             && let Some(j) = self.lists[i].item_state.selected()
@@ -166,22 +208,24 @@ impl App {
         }
     }
 
-    /// Enter the "Add List" by opening the corresponding pop-up
+    /// Enter the "Add List" screen by opening the corresponding pop-up
     fn enter_add_list_screen(&mut self) {
         self.current_screen = CurrentScreen::AddList;
     }
 
-    /// Remove last char from new list name
+    /// Remove last character from new list name input buffer
     fn remove_char_from_new_list_name(&mut self) {
         self.current_new_list_name.pop();
     }
 
-    /// Add char to new list name
+    /// Add character to new list name input buffer
     fn add_char_to_new_list_name(&mut self, value: char) {
         self.current_new_list_name.push(value);
     }
 
     /// Exit the Add List screen without saving
+    ///
+    /// Returns to the main screen and clears the input buffer.
     fn exit_add_list_without_saving(&mut self) {
         // Go back to main screen
         self.current_screen = CurrentScreen::Main;
@@ -191,6 +235,9 @@ impl App {
     }
 
     /// Save new list to database
+    ///
+    /// Creates a new todo list with the entered name, saves it to the database,
+    /// refreshes the list data, and returns to the main screen.
     async fn create_new_list(&mut self) {
         // Create a new todo list
         let new_list = NewTodoList {
@@ -214,7 +261,10 @@ impl App {
             .expect("Failed to read lists")
     }
 
-    /// Delete list
+    /// Delete the currently selected list
+    ///
+    /// Removes the list from the database, refreshes the data, and adjusts
+    /// the selection to maintain a valid state.
     async fn delete_list(&mut self) {
         if let Some(i) = self.list_state.selected() {
             let list = self.lists[i].list.clone();
@@ -236,38 +286,43 @@ impl App {
         }
     }
 
-    /// Enter the "Add Item" by opening the corresponding pop-up
+    /// Enter the "Add Item" screen by opening the corresponding pop-up
     fn enter_add_item_screen(&mut self) {
         self.current_screen = CurrentScreen::AddItem;
     }
 
-    /// Remove last char from new list name
+    /// Remove last character from new item name input buffer
     fn remove_char_from_new_item_name(&mut self) {
         self.current_new_item_name.pop();
     }
 
-    /// Add char to new list name
+    /// Add character to new item name input buffer
     fn add_char_to_new_item_name(&mut self, value: char) {
         self.current_new_item_name.push(value);
     }
 
-    /// Exit the Add List screen without saving
+    /// Exit the Add Item screen without saving
+    ///
+    /// Returns to the main screen and clears the input buffer.
     fn exit_add_item_without_saving(&mut self) {
         // Go back to main screen
         self.current_screen = CurrentScreen::Main;
 
-        // Erase any change in the new list name because the user exited without submitting
+        // Erase any change in the new item name because the user exited without submitting
         self.current_new_item_name = String::new();
     }
 
-    /// Save new list to database
+    /// Save new item to database
+    ///
+    /// Creates a new todo item in the currently selected list, saves it to the database,
+    /// refreshes the data, and returns to the main screen.
     async fn create_new_item(&mut self) {
         // Get the list the item will belong to
         if let Some(i) = self.list_state.selected() {
             // Get the id of the parent list
             let list_id = self.lists[i].list.id;
 
-            // Create a new todo list
+            // Create a new todo item
             let new_item = NewTodoItem {
                 name: self.current_new_item_name.clone(),
                 list_id,
@@ -275,7 +330,7 @@ impl App {
                 due_date: None,
             };
 
-            // Write new list to db
+            // Write new item to db
             TodoItem::create(&self.pool, new_item)
                 .await
                 .expect("Unable to add new item");
@@ -283,7 +338,7 @@ impl App {
             // Go back to main
             self.current_screen = CurrentScreen::Main;
 
-            // Re-init the new list variable
+            // Re-init the new item variable
             self.current_new_item_name = String::new();
 
             // Re-set the list of lists
@@ -293,7 +348,10 @@ impl App {
         }
     }
 
-    /// Delete item
+    /// Delete the currently selected item
+    ///
+    /// Removes the item from the database, refreshes the data, and adjusts
+    /// the selection to maintain a valid state.
     async fn delete_item(&mut self) {
         if let Some(i) = self.list_state.selected()
             && let Some(j) = self.lists[i].item_state.selected()
@@ -321,19 +379,20 @@ impl App {
     }
 }
 
-/// Widget trait implements the high-level rendering logic
-/// Actual rendering functions to be implemented for App and not as part of a trait
-/// It should always implement render
+/// Widget trait implementation for the main application
+///
+/// This implements the high-level rendering logic that coordinates all the different
+/// UI components and handles responsive layout based on terminal size.
 impl Widget for &mut App {
     fn render(self, area: Rect, buf: &mut Buffer) {
         // Render a background block that fills the entire area
         let background_color = Color::from_str("#002626").unwrap();
-        let foreground_color = Color::from_str("#F0EAD8").unwrap();
+        let foreground_color = Color::from_str("#FCF1D5").unwrap();
         let background =
             Block::default().style(Style::default().bg(background_color).fg(foreground_color));
         background.render(area, buf);
 
-        // Calculate responsive header height
+        // Calculate responsive header height based on terminal size
         let header_height = if area.height < 15 {
             // Very small terminal - minimal header
             Constraint::Length(3)
@@ -365,6 +424,7 @@ impl Widget for &mut App {
         self.render_lists(lists_area, buf);
         self.render_items(items_area, buf);
 
+        // Render popup screens if active
         match self.current_screen {
             CurrentScreen::AddList => self.render_add_list(lists_area, buf),
             CurrentScreen::AddItem => self.render_add_item(items_area, buf),
@@ -374,7 +434,9 @@ impl Widget for &mut App {
 }
 
 impl App {
-    // Render the header
+    /// Render the application header with ASCII logo
+    ///
+    /// Displays the "JUDO" ASCII art logo in the header area.
     fn render_header(area: Rect, buf: &mut Buffer) {
         // Use the judo ascii logo
         let ascii_logo = r#"
@@ -397,7 +459,9 @@ impl App {
             .render(area, buf);
     }
 
-    // Render list of to-do lists
+    /// Render the list of todo lists
+    ///
+    /// Displays all available todo lists with navigation hints and selection highlighting.
     fn render_lists(&mut self, area: Rect, buf: &mut Buffer) {
         // Command hints for lists
         let list_command_hints = Line::from(vec![
@@ -408,7 +472,7 @@ impl App {
             ),
             Span::styled(
                 "dd",
-                Style::default().fg(Color::from_str("#F0EAD8").unwrap()),
+                Style::default().fg(Color::from_str("#FCF1D5").unwrap()),
             ),
             Span::styled(
                 " [D]",
@@ -416,7 +480,7 @@ impl App {
             ),
             Span::styled(
                 "el ",
-                Style::default().fg(Color::from_str("#F0EAD8").unwrap()),
+                Style::default().fg(Color::from_str("#FCF1D5").unwrap()),
             ),
         ]);
 
@@ -428,18 +492,20 @@ impl App {
             .borders(Borders::TOP | Borders::LEFT | Borders::BOTTOM)
             .border_type(BorderType::Rounded);
 
+        // Convert lists to display items
         let items: Vec<ListItem> = self
             .lists
             .iter()
             .map(|ui_list| ListItem::from(ui_list.list.name.clone()))
             .collect();
+
         let list: List = List::new(items)
             .block(block)
-            .highlight_symbol(" ▸ ") // Rounded bottom-left corner character
+            .highlight_symbol(" ▸ ") // Selection indicator
             .highlight_style(
-                // Swap foreground and background
+                // Swap foreground and background for selected item
                 Style::default()
-                    .bg(Color::from_str("#F0EAD8").unwrap())
+                    .bg(Color::from_str("#FCF1D5").unwrap())
                     .fg(Color::from_str("#002626").unwrap()),
             )
             .highlight_spacing(HighlightSpacing::Always);
@@ -447,18 +513,24 @@ impl App {
         StatefulWidget::render(list, area, buf, &mut self.list_state)
     }
 
-    /// Style the item
+    /// Apply styling to a todo item based on its completion status
+    ///
+    /// Returns a styled span that shows completed items with strikethrough.
     fn style_item(ui_item: &UIItem) -> Span<'_> {
         let name = ui_item.item.name.clone();
 
         if ui_item.item.is_done {
+            // Strike through completed items
             Span::styled(name, Style::default().add_modifier(Modifier::CROSSED_OUT))
         } else {
             Span::from(name)
         }
     }
 
-    /// Render list of items
+    /// Render the list of todo items for the selected list
+    ///
+    /// Displays items from the currently selected list with navigation hints and completion status.
+    /// Shows a message if no list is selected.
     fn render_items(&mut self, area: Rect, buf: &mut Buffer) {
         // Command hints for items
         let list_command_hints = Line::from(vec![
@@ -469,7 +541,7 @@ impl App {
             ),
             Span::styled(
                 "dd",
-                Style::default().fg(Color::from_str("#F0EAD8").unwrap()),
+                Style::default().fg(Color::from_str("#FCF1D5").unwrap()),
             ),
             Span::styled(
                 " [d]",
@@ -477,7 +549,7 @@ impl App {
             ),
             Span::styled(
                 "el ",
-                Style::default().fg(Color::from_str("#F0EAD8").unwrap()),
+                Style::default().fg(Color::from_str("#FCF1D5").unwrap()),
             ),
         ]);
 
@@ -488,41 +560,45 @@ impl App {
             .title_alignment(Alignment::Center)
             .borders(Borders::ALL)
             .border_type(BorderType::Rounded);
+
         // Get the list selected by the user
         if let Some(i) = self.list_state.selected() {
             let selected_list = &mut self.lists[i];
 
-            // Extract the corresponding items
+            // Extract the corresponding items with styling
             let items: Vec<ListItem> = selected_list
                 .items
                 .iter()
                 .map(|ui_item| ListItem::from(App::style_item(ui_item)))
-                //.map(|ui_item| ListItem::from(ui_item.item.name.clone()))
                 .collect();
 
             let list: List = List::new(items)
                 .block(block)
                 .highlight_symbol(" ▸ ")
                 .highlight_style(
-                    // Swap foreground and background
+                    // Swap foreground and background for selected item
                     Style::default()
-                        .bg(Color::from_str("#F0EAD8").unwrap())
+                        .bg(Color::from_str("#FCF1D5").unwrap())
                         .fg(Color::from_str("#002626").unwrap()),
                 )
                 .highlight_spacing(HighlightSpacing::Always);
 
             StatefulWidget::render(list, area, buf, &mut selected_list.item_state);
         } else {
-            Paragraph::new("Select a to-do list first")
+            // No list selected - show instruction message
+            Paragraph::new("Select or add a to-do list first")
                 .left_aligned()
                 .block(block)
                 .render(area, buf);
         }
     }
 
-    /// Render pop-up for entering a new list (only name is required)
+    /// Render popup for entering a new list name
+    ///
+    /// Displays a centered popup dialog for adding a new todo list.
+    /// Only the list name is required for creation.
     fn render_add_list(&mut self, area: Rect, buf: &mut Buffer) {
-        // Command hints for lists
+        // Command hints for add list popup
         let add_list_command_hints = Line::from(vec![
             Span::styled(
                 "[E]",
@@ -530,7 +606,7 @@ impl App {
             ),
             Span::styled(
                 "sc",
-                Style::default().fg(Color::from_str("#F0EAD8").unwrap()),
+                Style::default().fg(Color::from_str("#FCF1D5").unwrap()),
             ),
         ]);
 
@@ -557,41 +633,43 @@ impl App {
             .style(Style::default().bg(Color::from_str("#002626").unwrap()))
             .render(popup_area, buf);
 
-        // Define the block
+        // Define the popup block with styling
         let popup_block = Block::new()
             .title(" Add List ")
-            .title_style(Style::new().fg(Color::from_str("#F0EAD8").unwrap()).bold())
+            .title_style(Style::new().fg(Color::from_str("#FCF1D5").unwrap()).bold())
             .title_bottom(add_list_command_hints)
             .borders(Borders::ALL)
-            .border_style(Style::new().fg(Color::from_str("#F0EAD8").unwrap()))
+            .border_style(Style::new().fg(Color::from_str("#FCF1D5").unwrap()))
             .border_type(BorderType::Rounded)
             .padding(Padding::horizontal(1));
 
-        // Define the text to render with a blinking character at the end
-        // Doesn't appear in Warp
+        // Define the text to render with a blinking cursor at the end
+        // Note: Blinking cursor doesn't appear in some terminals like Warp
         let text_line = Line::from(vec![
             Span::styled(
                 self.current_new_list_name.clone(),
-                Style::default().fg(Color::from_str("#F0EAD8").unwrap()),
-            ), // Text
+                Style::default().fg(Color::from_str("#FCF1D5").unwrap()),
+            ), // User input text
             Span::styled(
                 "█",
                 Style::default()
-                    .fg(Color::from_str("#F0EAD8").unwrap())
+                    .fg(Color::from_str("#FCF1D5").unwrap())
                     .add_modifier(Modifier::RAPID_BLINK), // Blinking cursor
             ),
         ]);
 
-        // Render with center alignment
+        // Render the input field
         Paragraph::new(text_line)
             .wrap(Wrap { trim: true })
             .block(popup_block)
             .render(popup_area, buf);
     }
 
-    /// Render the pop up for adding an item
+    /// Render popup for entering a new item name
+    ///
+    /// Displays a centered popup dialog for adding a new todo item to the selected list.
     fn render_add_item(&mut self, area: Rect, buf: &mut Buffer) {
-        // Command hints for items
+        // Command hints for add item popup
         let add_item_command_hints = Line::from(vec![
             Span::styled(
                 "[E]",
@@ -599,7 +677,7 @@ impl App {
             ),
             Span::styled(
                 "sc",
-                Style::default().fg(Color::from_str("#F0EAD8").unwrap()),
+                Style::default().fg(Color::from_str("#FCF1D5").unwrap()),
             ),
         ]);
 
@@ -626,32 +704,32 @@ impl App {
             .style(Style::default().bg(Color::from_str("#002626").unwrap()))
             .render(popup_area, buf);
 
-        // Define the block
+        // Define the popup block with styling
         let popup_block = Block::new()
             .title(" Add Item ")
-            .title_style(Style::new().fg(Color::from_str("#F0EAD8").unwrap()).bold())
+            .title_style(Style::new().fg(Color::from_str("#FCF1D5").unwrap()).bold())
             .title_bottom(add_item_command_hints)
             .borders(Borders::ALL)
-            .border_style(Style::new().fg(Color::from_str("#F0EAD8").unwrap()))
+            .border_style(Style::new().fg(Color::from_str("#FCF1D5").unwrap()))
             .border_type(BorderType::Rounded)
             .padding(Padding::horizontal(1));
 
-        // Define the text to render with a blinking character at the end
-        // Doesn't appear in Warp
+        // Define the text to render with a blinking cursor at the end
+        // Note: Blinking cursor doesn't appear in some terminals like Warp
         let text_line = Line::from(vec![
             Span::styled(
                 self.current_new_item_name.clone(),
-                Style::default().fg(Color::from_str("#F0EAD8").unwrap()),
-            ), // Text
+                Style::default().fg(Color::from_str("#FCF1D5").unwrap()),
+            ), // User input text
             Span::styled(
                 "█",
                 Style::default()
-                    .fg(Color::from_str("#F0EAD8").unwrap())
+                    .fg(Color::from_str("#FCF1D5").unwrap())
                     .add_modifier(Modifier::RAPID_BLINK), // Blinking cursor
             ),
         ]);
 
-        // Render with center alignment
+        // Render the input field
         Paragraph::new(text_line)
             .wrap(Wrap { trim: true })
             .block(popup_block)
@@ -659,6 +737,10 @@ impl App {
     }
 }
 
+/// Application entry point
+///
+/// Initializes the terminal, creates the application instance, runs the main loop,
+/// and properly restores the terminal on exit.
 #[tokio::main]
 async fn main() -> Result<()> {
     // Set the terminal up
@@ -667,9 +749,10 @@ async fn main() -> Result<()> {
     // Set up the app
     let app = App::new().await;
 
-    // Crate and run the app
+    // Create and run the app
     let app_result = app.run(&mut terminal).await;
 
+    // Restore terminal to original state
     ratatui::restore();
 
     app_result

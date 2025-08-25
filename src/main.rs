@@ -586,10 +586,13 @@ impl App {
             StatefulWidget::render(list, area, buf, &mut selected_list.item_state);
         } else {
             // No list selected - show instruction message
-            Paragraph::new("Select or add a to-do list first")
-                .left_aligned()
-                .block(block)
-                .render(area, buf);
+            Paragraph::new(Span::styled(
+                "Select or add a to-do list first",
+                Style::default().italic(),
+            ))
+            .left_aligned()
+            .block(block)
+            .render(area, buf);
         }
     }
 

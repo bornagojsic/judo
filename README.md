@@ -12,7 +12,7 @@
  ╚════╝  ╚═════╝ ╚═════╝  ╚═════╝ 
 ```
 
-A terminal-based todo list application that keeps your tasks organized in lists.
+A terminal-based todo list application.
 
 ## Table of Contents
 

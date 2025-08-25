@@ -16,12 +16,16 @@ A terminal-based todo list application that keeps your tasks organized in lists.
 
 ## Table of Contents
 
+- [What Judo Looks Like](#what-judo-looks-like)
 - [What It Does](#what-it-does)
 - [Why Another Todo App](#why-another-todo-app)
 - [Installation](#installation)
 - [Usage](#usage)
 - [Key Bindings](#key-bindings)
 - [Data Storage](#data-storage)
+
+## What Judo Looks Like
+![](https://github.com/giacomopiccinini/judo/blob/main/assets/judo.png)
 
 ## What It Does
 

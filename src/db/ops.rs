@@ -114,7 +114,7 @@ impl TodoItem {
             SELECT id, list_id, name, is_done, priority, due_date, created_at, updated_at
             FROM todo_items 
             WHERE list_id = ?1 
-            ORDER BY is_done ASC, priority ASC, created_at DESC
+            ORDER BY created_at
             "#,
         )
         .bind(list_id)

@@ -288,7 +288,9 @@ impl App {
 
     /// Enter the "Add Item" screen by opening the corresponding pop-up
     fn enter_add_item_screen(&mut self) {
-        self.current_screen = CurrentScreen::AddItem;
+        if let Some(_i) = self.list_state.selected(){
+            self.current_screen = CurrentScreen::AddItem;
+        }
     }
 
     /// Remove last character from new item name input buffer

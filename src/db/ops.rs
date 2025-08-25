@@ -265,4 +265,24 @@ impl UIList {
 
         Ok(ui_lists)
     }
+
+    /// Update items when something changes (new item, deleted item).
+    /// Keeps the same list state instead of reinitializing it
+    pub async fn update_items(&mut self, pool: &SqlitePool) -> Result<()> {
+        // Re-fetch the items but don't change the list state
+        let items = TodoItem::get_by_list_id(pool, self.list.id)
+            .await
+            .with_context(|| "Failed to fetch items for list")?
+            .iter()
+            .map(|i| UIItem {
+                item: i.clone(),
+                state: self.item_state.clone(),
+            })
+            .collect();
+
+        // Update the items
+        self.items = items;
+
+        Ok(())
+    }
 }

@@ -288,7 +288,7 @@ impl App {
 
     /// Enter the "Add Item" screen by opening the corresponding pop-up
     fn enter_add_item_screen(&mut self) {
-        if let Some(_i) = self.list_state.selected(){
+        if let Some(_i) = self.list_state.selected() {
             self.current_screen = CurrentScreen::AddItem;
         }
     }
@@ -343,10 +343,11 @@ impl App {
             // Re-init the new item variable
             self.current_new_item_name = String::new();
 
-            // Re-set the list of lists
-            self.lists = UIList::get_all(&self.pool)
+            // Update list elements
+            self.lists[i]
+                .update_items(&self.pool)
                 .await
-                .expect("Failed to read lists")
+                .expect("Failed to update list");
         }
     }
 
@@ -364,10 +365,11 @@ impl App {
                 .await
                 .expect("Unable to delete item");
 
-            // Refresh the lists from database
-            self.lists = UIList::get_all(&self.pool)
+            // Update list elements
+            self.lists[i]
+                .update_items(&self.pool)
                 .await
-                .expect("Failed to read lists");
+                .expect("Failed to update list");
 
             // Adjust selection after deletion - check bounds first
             if let Some(list) = self.lists.get_mut(i) {

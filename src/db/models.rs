@@ -45,14 +45,14 @@ pub struct NewTodoItem {
 }
 
 // Convenient repackaging of DB items to cache reads from DB
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct UIList {
     pub list: TodoList,
     pub item_state: ListState,
     pub items: Vec<UIItem>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct UIItem {
     pub item: TodoItem,
     pub state: ListState,

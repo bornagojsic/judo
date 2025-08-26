@@ -133,7 +133,8 @@ impl App {
     async fn handle_key_in_add_list_screen(&mut self, key: KeyEvent) {
         match key.code {
             KeyCode::Esc => self.exit_add_list_without_saving(), // Cancel without saving
-            KeyCode::Backspace => self.remove_char_from_new_list_name(), // Delete character
+            KeyCode::Backspace => self.remove_char_from_new_list_name(), // Delete character before cursor
+            KeyCode::Delete => self.delete_char_after_cursor(), // Delete character after cursor
             KeyCode::Char(value) => self.add_char_to_new_list_name(value), // Add character
             KeyCode::Left => self.move_cursor_left(),
             KeyCode::Right => self.move_cursor_right(),
@@ -278,6 +279,25 @@ impl App {
         }
     }
 
+    /// Delete character after cursor position in new list name
+    fn delete_char_after_cursor(&mut self) {
+        let text_len = self.new_list_state.current_new_list_name.chars().count();
+
+        // Only delete if cursor is not at the end of the string
+        if self.new_list_state.cursor_pos < text_len {
+            // Convert to chars for proper Unicode handling
+            let mut chars: Vec<char> = self.new_list_state.current_new_list_name.chars().collect();
+
+            // Remove the character at cursor position
+            chars.remove(self.new_list_state.cursor_pos);
+
+            // Convert back to string
+            self.new_list_state.current_new_list_name = chars.into_iter().collect();
+
+            // Cursor position stays the same since we deleted the character after it
+        }
+    }
+
     /// Save new list to database
     ///
     /// Creates a new todo list with the entered name, saves it to the database,
@@ -298,6 +318,7 @@ impl App {
 
         // Re-init the new list variable
         self.new_list_state.current_new_list_name = String::new();
+        self.new_list_state.cursor_pos = 0; // Reset cursor position
 
         // Re-set the list of lists
         self.lists = UIList::get_all(&self.pool)

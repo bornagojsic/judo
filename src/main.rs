@@ -280,6 +280,7 @@ impl App {
     }
 
     /// Delete character after cursor position in new list name
+    /// Cursor position stays the same since we deleted the character after it
     fn delete_char_after_cursor(&mut self) {
         let text_len = self.new_list_state.current_new_list_name.chars().count();
 
@@ -293,8 +294,6 @@ impl App {
 
             // Convert back to string
             self.new_list_state.current_new_list_name = chars.into_iter().collect();
-
-            // Cursor position stays the same since we deleted the character after it
         }
     }
 

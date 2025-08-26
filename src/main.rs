@@ -26,17 +26,26 @@ pub struct App {
     lists: Vec<UIList>,
     /// State for the list selection widget
     list_state: ListState,
-    /// Buffer for new list name input
+    /// State of list being added
     new_list_state: NewListState,
-    /// Buffer for new item name input
-    current_new_item_name: String,
+    /// State of item being added
+    new_item_state: NewItemState,
     /// Flag to indicate if the application should exit
     exit: bool,
 }
 
+/// State of new list being added but not finalized
 pub struct NewListState {
     /// Buffer for new list name input
     current_new_list_name: String,
+    /// Position of cursor
+    cursor_pos: usize,
+}
+
+/// State of new item being added but not finalized
+pub struct NewItemState {
+    /// Buffer for new list name input
+    current_new_item_name: String,
     /// Position of cursor
     cursor_pos: usize,
 }
@@ -78,7 +87,10 @@ impl App {
                 current_new_list_name: String::new(),
                 cursor_pos: 0,
             },
-            current_new_item_name: String::new(),
+            new_item_state: NewItemState {
+                current_new_item_name: String::new(),
+                cursor_pos: 0,
+            },
             exit: false,
         }
     }
@@ -134,10 +146,10 @@ impl App {
         match key.code {
             KeyCode::Esc => self.exit_add_list_without_saving(), // Cancel without saving
             KeyCode::Backspace => self.remove_char_from_new_list_name(), // Delete character before cursor
-            KeyCode::Delete => self.delete_char_after_cursor(), // Delete character after cursor
+            KeyCode::Delete => self.delete_char_after_cursor_list(), // Delete character after cursor
             KeyCode::Char(value) => self.add_char_to_new_list_name(value), // Add character
-            KeyCode::Left => self.move_cursor_left(),
-            KeyCode::Right => self.move_cursor_right(),
+            KeyCode::Left => self.move_cursor_left_list(),
+            KeyCode::Right => self.move_cursor_right_list(),
             KeyCode::Enter => self.create_new_list().await, // Submit new list
             _ => {}
         }
@@ -151,8 +163,11 @@ impl App {
         match key.code {
             KeyCode::Esc => self.exit_add_item_without_saving(), // Cancel without saving
             KeyCode::Backspace => self.remove_char_from_new_item_name(), // Delete character
+            KeyCode::Delete => self.delete_char_after_cursor_item(), // Delete character after cursor
+            KeyCode::Left => self.move_cursor_left_item(),
+            KeyCode::Right => self.move_cursor_right_item(),
             KeyCode::Char(value) => self.add_char_to_new_item_name(value), // Add character
-            KeyCode::Enter => self.create_new_item().await,      // Submit new item
+            KeyCode::Enter => self.create_new_item().await,                // Submit new item
             _ => {}
         }
     }
@@ -264,14 +279,14 @@ impl App {
     }
 
     /// Move cursor one char to the left
-    fn move_cursor_left(&mut self) {
+    fn move_cursor_left_list(&mut self) {
         if self.new_list_state.cursor_pos > 0 {
             self.new_list_state.cursor_pos -= 1;
         }
     }
 
     /// Move cursor one char to the right
-    fn move_cursor_right(&mut self) {
+    fn move_cursor_right_list(&mut self) {
         if self.new_list_state.cursor_pos
             < self.new_list_state.current_new_list_name.chars().count()
         {
@@ -281,7 +296,7 @@ impl App {
 
     /// Delete character after cursor position in new list name
     /// Cursor position stays the same since we deleted the character after it
-    fn delete_char_after_cursor(&mut self) {
+    fn delete_char_after_cursor_list(&mut self) {
         let text_len = self.new_list_state.current_new_list_name.chars().count();
 
         // Only delete if cursor is not at the end of the string
@@ -359,12 +374,27 @@ impl App {
 
     /// Remove last character from new item name input buffer
     fn remove_char_from_new_item_name(&mut self) {
-        self.current_new_item_name.pop();
+        // The cursor "points" is organized so that it points to the next char
+        // If cursor == 0, then the user hasn't written a single char and we do nothing
+        if self.new_item_state.cursor_pos > 0 {
+            // Since it points to the next char, we remove the char in the previous position
+            self.new_item_state
+                .current_new_item_name
+                .remove(self.new_item_state.cursor_pos - 1);
+            // We need to update the position or else it will point e.g. to places in advances if
+            // we are removing the last char in the string
+            self.new_item_state.cursor_pos -= 1;
+        }
     }
 
     /// Add character to new item name input buffer
     fn add_char_to_new_item_name(&mut self, value: char) {
-        self.current_new_item_name.push(value);
+        // Insert in a specific position
+        self.new_item_state
+            .current_new_item_name
+            .insert(self.new_item_state.cursor_pos, value);
+        // Move cursor forward
+        self.new_item_state.cursor_pos += 1;
     }
 
     /// Exit the Add Item screen without saving
@@ -375,7 +405,44 @@ impl App {
         self.current_screen = CurrentScreen::Main;
 
         // Erase any change in the new item name because the user exited without submitting
-        self.current_new_item_name = String::new();
+        self.new_item_state.current_new_item_name = String::new();
+
+        // Reset cursor
+        self.new_item_state.cursor_pos = 0;
+    }
+
+    /// Delete character after cursor position in new item name
+    /// Cursor position stays the same since we deleted the character after it
+    fn delete_char_after_cursor_item(&mut self) {
+        let text_len = self.new_item_state.current_new_item_name.chars().count();
+
+        // Only delete if cursor is not at the end of the string
+        if self.new_item_state.cursor_pos < text_len {
+            // Convert to chars for proper Unicode handling
+            let mut chars: Vec<char> = self.new_item_state.current_new_item_name.chars().collect();
+
+            // Remove the character at cursor position
+            chars.remove(self.new_item_state.cursor_pos);
+
+            // Convert back to string
+            self.new_item_state.current_new_item_name = chars.into_iter().collect();
+        }
+    }
+
+    /// Move cursor one char to the left
+    fn move_cursor_left_item(&mut self) {
+        if self.new_item_state.cursor_pos > 0 {
+            self.new_item_state.cursor_pos -= 1;
+        }
+    }
+
+    /// Move cursor one char to the right
+    fn move_cursor_right_item(&mut self) {
+        if self.new_item_state.cursor_pos
+            < self.new_item_state.current_new_item_name.chars().count()
+        {
+            self.new_item_state.cursor_pos += 1;
+        }
     }
 
     /// Save new item to database
@@ -390,7 +457,7 @@ impl App {
 
             // Create a new todo item
             let new_item = NewTodoItem {
-                name: self.current_new_item_name.clone(),
+                name: self.new_item_state.current_new_item_name.clone(),
                 list_id,
                 priority: None,
                 due_date: None,
@@ -405,7 +472,8 @@ impl App {
             self.current_screen = CurrentScreen::Main;
 
             // Re-init the new item variable
-            self.current_new_item_name = String::new();
+            self.new_item_state.current_new_item_name = String::new();
+            self.new_item_state.cursor_pos = 0;
 
             // Update list elements
             self.lists[i]
@@ -768,7 +836,7 @@ impl App {
             .border_type(BorderType::Rounded)
             .padding(Padding::horizontal(1));
 
-        // Define the text to render with a blinking cursor
+        // Define the text to render
         let text_spans = Self::create_cursor_text_spans(
             &self.new_list_state.current_new_list_name,
             self.new_list_state.cursor_pos,
@@ -832,20 +900,13 @@ impl App {
             .border_type(BorderType::Rounded)
             .padding(Padding::horizontal(1));
 
-        // Define the text to render with a blinking cursor at the end
-        // Note: Blinking cursor doesn't appear in some terminals like Warp
-        let text_line = Line::from(vec![
-            Span::styled(
-                self.current_new_item_name.clone(),
-                Style::default().fg(Color::from_str("#FCF1D5").unwrap()),
-            ), // User input text
-            Span::styled(
-                "█",
-                Style::default()
-                    .fg(Color::from_str("#FCF1D5").unwrap())
-                    .add_modifier(Modifier::RAPID_BLINK), // Blinking cursor
-            ),
-        ]);
+        // Define the text to render
+        let text_spans = Self::create_cursor_text_spans(
+            &self.new_item_state.current_new_item_name,
+            self.new_item_state.cursor_pos,
+        );
+
+        let text_line = Line::from(text_spans);
 
         // Render the input field
         Paragraph::new(text_line)

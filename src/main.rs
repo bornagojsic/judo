@@ -27,11 +27,18 @@ pub struct App {
     /// State for the list selection widget
     list_state: ListState,
     /// Buffer for new list name input
-    current_new_list_name: String,
+    new_list_state: NewListState,
     /// Buffer for new item name input
     current_new_item_name: String,
     /// Flag to indicate if the application should exit
     exit: bool,
+}
+
+pub struct NewListState {
+    /// Buffer for new list name input
+    current_new_list_name: String,
+    /// Position of cursor
+    cursor_pos: usize,
 }
 
 /// Enum representing the different screens in the application
@@ -67,7 +74,10 @@ impl App {
             pool,
             lists,
             list_state,
-            current_new_list_name: String::new(),
+            new_list_state: NewListState {
+                current_new_list_name: String::new(),
+                cursor_pos: 0,
+            },
             current_new_item_name: String::new(),
             exit: false,
         }
@@ -125,7 +135,9 @@ impl App {
             KeyCode::Esc => self.exit_add_list_without_saving(), // Cancel without saving
             KeyCode::Backspace => self.remove_char_from_new_list_name(), // Delete character
             KeyCode::Char(value) => self.add_char_to_new_list_name(value), // Add character
-            KeyCode::Enter => self.create_new_list().await,      // Submit new list
+            KeyCode::Left => self.move_cursor_left(),
+            KeyCode::Right => self.move_cursor_right(),
+            KeyCode::Enter => self.create_new_list().await, // Submit new list
             _ => {}
         }
     }
@@ -215,12 +227,27 @@ impl App {
 
     /// Remove last character from new list name input buffer
     fn remove_char_from_new_list_name(&mut self) {
-        self.current_new_list_name.pop();
+        // The cursor "points" is organized so that it points to the next char
+        // If cursor == 0, then the user hasn't written a single char and we do nothing
+        if self.new_list_state.cursor_pos > 0 {
+            // Since it points to the next char, we remove the char in the previous position
+            self.new_list_state
+                .current_new_list_name
+                .remove(self.new_list_state.cursor_pos - 1);
+            // We need to update the position or else it will point e.g. to places in advances if
+            // we are removing the last char in the string
+            self.new_list_state.cursor_pos -= 1;
+        }
     }
 
     /// Add character to new list name input buffer
     fn add_char_to_new_list_name(&mut self, value: char) {
-        self.current_new_list_name.push(value);
+        // Insert in a specific position
+        self.new_list_state
+            .current_new_list_name
+            .insert(self.new_list_state.cursor_pos, value);
+        // Move cursor forward
+        self.new_list_state.cursor_pos += 1;
     }
 
     /// Exit the Add List screen without saving
@@ -231,7 +258,24 @@ impl App {
         self.current_screen = CurrentScreen::Main;
 
         // Erase any change in the new list name because the user exited without submitting
-        self.current_new_list_name = String::new();
+        self.new_list_state.current_new_list_name = String::new();
+        self.new_list_state.cursor_pos = 0; // Reset cursor position
+    }
+
+    /// Move cursor one char to the left
+    fn move_cursor_left(&mut self) {
+        if self.new_list_state.cursor_pos > 0 {
+            self.new_list_state.cursor_pos -= 1;
+        }
+    }
+
+    /// Move cursor one char to the right
+    fn move_cursor_right(&mut self) {
+        if self.new_list_state.cursor_pos
+            < self.new_list_state.current_new_list_name.chars().count()
+        {
+            self.new_list_state.cursor_pos += 1;
+        }
     }
 
     /// Save new list to database
@@ -241,7 +285,7 @@ impl App {
     async fn create_new_list(&mut self) {
         // Create a new todo list
         let new_list = NewTodoList {
-            name: self.current_new_list_name.clone(),
+            name: self.new_list_state.current_new_list_name.clone(),
         };
 
         // Write new list to db
@@ -253,7 +297,7 @@ impl App {
         self.current_screen = CurrentScreen::Main;
 
         // Re-init the new list variable
-        self.current_new_list_name = String::new();
+        self.new_list_state.current_new_list_name = String::new();
 
         // Re-set the list of lists
         self.lists = UIList::get_all(&self.pool)
@@ -438,6 +482,60 @@ impl Widget for &mut App {
 }
 
 impl App {
+    /// Create text spans for rendering a string with a cursor at a specific position
+    ///
+    /// Returns a vector of spans: text before cursor, cursor character, text after cursor
+    fn create_cursor_text_spans(text: &str, cursor_pos: usize) -> Vec<Span<'static>> {
+        let chars: Vec<char> = text.chars().collect();
+        let text_len = chars.len();
+
+        // Ensure cursor position is within bounds
+        let safe_cursor_pos = cursor_pos.min(text_len);
+
+        // Text before cursor
+        let text_before: String = chars[..safe_cursor_pos].iter().collect();
+
+        // Character at cursor position (or space if at end)
+        let cursor_char = if safe_cursor_pos >= text_len {
+            "█".to_string()
+        } else {
+            chars[safe_cursor_pos].to_string()
+        };
+
+        // Text after cursor
+        let text_after: String = if safe_cursor_pos >= text_len {
+            String::new()
+        } else {
+            chars[(safe_cursor_pos + 1)..].iter().collect()
+        };
+
+        vec![
+            Span::styled(
+                text_before,
+                Style::default().fg(Color::from_str("#FCF1D5").unwrap()),
+            ),
+            if cursor_char == "█" {
+                Span::styled(
+                    cursor_char,
+                    Style::default()
+                        .fg(Color::from_str("#FCF1D5").unwrap())
+                        .bg(Color::from_str("#002626").unwrap()),
+                )
+            } else {
+                Span::styled(
+                    cursor_char,
+                    Style::default()
+                        .fg(Color::from_str("#002626").unwrap())
+                        .bg(Color::from_str("#FCF1D5").unwrap()),
+                )
+            },
+            Span::styled(
+                text_after,
+                Style::default().fg(Color::from_str("#FCF1D5").unwrap()),
+            ),
+        ]
+    }
+
     /// Render the application header with ASCII logo
     ///
     /// Displays the "JUDO" ASCII art logo in the header area.
@@ -650,20 +748,13 @@ impl App {
             .border_type(BorderType::Rounded)
             .padding(Padding::horizontal(1));
 
-        // Define the text to render with a blinking cursor at the end
-        // Note: Blinking cursor doesn't appear in some terminals like Warp
-        let text_line = Line::from(vec![
-            Span::styled(
-                self.current_new_list_name.clone(),
-                Style::default().fg(Color::from_str("#FCF1D5").unwrap()),
-            ), // User input text
-            Span::styled(
-                "█",
-                Style::default()
-                    .fg(Color::from_str("#FCF1D5").unwrap())
-                    .add_modifier(Modifier::RAPID_BLINK), // Blinking cursor
-            ),
-        ]);
+        // Define the text to render with a blinking cursor
+        let text_spans = Self::create_cursor_text_spans(
+            &self.new_list_state.current_new_list_name,
+            self.new_list_state.cursor_pos,
+        );
+
+        let text_line = Line::from(text_spans);
 
         // Render the input field
         Paragraph::new(text_line)

@@ -7,14 +7,14 @@ pub trait CursorState {
     /// Get the current text content
     fn get_text(&self) -> &str;
 
+    /// Get a mutable reference to the text content
+    fn get_text_mut(&mut self) -> &mut String;
+
     /// Get the current cursor position
     fn get_cursor_pos(&self) -> usize;
 
     /// Set the cursor position
     fn set_cursor_pos(&mut self, pos: usize);
-
-    /// Get a mutable reference to the text content
-    fn get_text_mut(&mut self) -> &mut String;
 
     /// Add a character at the cursor position
     fn add_char(&mut self, c: char) {

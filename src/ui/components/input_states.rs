@@ -29,16 +29,16 @@ impl CursorState for NewListState {
         &self.current_new_list_name
     }
 
+    fn get_text_mut(&mut self) -> &mut String {
+        &mut self.current_new_list_name
+    }
+
     fn get_cursor_pos(&self) -> usize {
         self.cursor_pos
     }
 
     fn set_cursor_pos(&mut self, pos: usize) {
         self.cursor_pos = pos;
-    }
-
-    fn get_text_mut(&mut self) -> &mut String {
-        &mut self.current_new_list_name
     }
 }
 
@@ -71,15 +71,15 @@ impl CursorState for NewItemState {
         &self.current_new_item_name
     }
 
+    fn get_text_mut(&mut self) -> &mut String {
+        &mut self.current_new_item_name
+    }
+
     fn get_cursor_pos(&self) -> usize {
         self.cursor_pos
     }
 
     fn set_cursor_pos(&mut self, pos: usize) {
         self.cursor_pos = pos;
-    }
-
-    fn get_text_mut(&mut self) -> &mut String {
-        &mut self.current_new_item_name
     }
 }

@@ -48,7 +48,7 @@ impl ItemsComponent {
         }
     }
 
-    /// Toggle the "is_done" status of the currently selected item
+    /// Toggle the "is done" status of the currently selected item
     pub async fn toggle_item_done(ui_list: &mut UIList, pool: &SqlitePool) -> Result<()> {
         if let Some(j) = ui_list.item_state.selected() {
             ui_list.items[j].item.toggle_done(pool).await?;

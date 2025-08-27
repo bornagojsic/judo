@@ -19,38 +19,39 @@ use std::str::FromStr;
 /// Main application state
 pub struct App {
     /// Current active screen (Main, AddList, or AddItem)
-    current_screen: CurrentScreen,
+    pub current_screen: CurrentScreen,
     /// Database connection pool
-    pool: SqlitePool,
+    pub pool: SqlitePool,
     /// Vector of todo lists with their UI state
-    lists: Vec<UIList>,
+    pub lists: Vec<UIList>,
     /// State for the list selection widget
-    list_state: ListState,
+    pub list_state: ListState,
     /// State of list being added
-    new_list_state: NewListState,
+    pub new_list_state: NewListState,
     /// State of item being added
-    new_item_state: NewItemState,
+    pub new_item_state: NewItemState,
     /// Flag to indicate if the application should exit
-    exit: bool,
+    pub exit: bool,
 }
 
 /// State of new list being added but not finalized
 pub struct NewListState {
     /// Buffer for new list name input
-    current_new_list_name: String,
+    pub current_new_list_name: String,
     /// Position of cursor
-    cursor_pos: usize,
+    pub cursor_pos: usize,
 }
 
 /// State of new item being added but not finalized
 pub struct NewItemState {
     /// Buffer for new list name input
-    current_new_item_name: String,
+    pub current_new_item_name: String,
     /// Position of cursor
-    cursor_pos: usize,
+    pub cursor_pos: usize,
 }
 
 /// Enum representing the different screens in the application
+#[derive(Debug, Clone, PartialEq)]
 pub enum CurrentScreen {
     /// Main screen showing lists and items
     Main,

@@ -16,6 +16,12 @@ pub struct ListsComponent {
     pub list_state: ListState,
 }
 
+impl Default for ListsComponent {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ListsComponent {
     pub fn new() -> Self {
         Self {

@@ -9,6 +9,12 @@ pub struct NewListState {
     pub cursor_pos: usize,
 }
 
+impl Default for NewListState {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl NewListState {
     pub fn new() -> Self {
         Self {
@@ -43,6 +49,12 @@ pub struct NewItemState {
     pub current_new_item_name: String,
     /// Position of cursor
     pub cursor_pos: usize,
+}
+
+impl Default for NewItemState {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl NewItemState {

@@ -587,3 +587,90 @@ async fn test_todo_item_timestamp_updates() -> Result<()> {
 
     Ok(())
 }
+
+#[tokio::test]
+async fn test_todo_item_invalid_list_id() -> Result<()> {
+    let pool = setup_test_db().await?;
+
+    // Try to create item with non-existent list_id
+    let invalid_item = NewTodoItem {
+        list_id: 99999, // Non-existent list
+        name: "Item for non-existent list".to_string(),
+        priority: Some(Priority::Medium),
+        due_date: None,
+    };
+
+    // This should fail due to foreign key constraint
+    let result = TodoItem::create(&pool, invalid_item).await;
+    assert!(result.is_err());
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_todo_item_ordering_by_creation_date() -> Result<()> {
+    let pool = setup_test_db().await?;
+
+    let new_list = NewTodoList {
+        name: "Ordering Test List".to_string(),
+    };
+    let created_list = TodoList::create(&pool, new_list).await?;
+
+    // Create items with small delays to ensure different creation times
+    let item1 = TodoItem::create(
+        &pool,
+        NewTodoItem {
+            list_id: created_list.id,
+            name: "First Item".to_string(),
+            priority: Some(Priority::High),
+            due_date: None,
+        },
+    )
+    .await?;
+
+    tokio::time::sleep(tokio::time::Duration::from_millis(10)).await;
+
+    let item2 = TodoItem::create(
+        &pool,
+        NewTodoItem {
+            list_id: created_list.id,
+            name: "Second Item".to_string(),
+            priority: Some(Priority::Medium),
+            due_date: None,
+        },
+    )
+    .await?;
+
+    tokio::time::sleep(tokio::time::Duration::from_millis(10)).await;
+
+    let item3 = TodoItem::create(
+        &pool,
+        NewTodoItem {
+            list_id: created_list.id,
+            name: "Third Item".to_string(),
+            priority: Some(Priority::Low),
+            due_date: None,
+        },
+    )
+    .await?;
+
+    // Get items - should be ordered by created_at
+    let all_items = TodoItem::get_by_list_id(&pool, created_list.id).await?;
+    assert_eq!(all_items.len(), 3);
+
+    // Verify ordering
+    assert_eq!(all_items[0].name, "First Item");
+    assert_eq!(all_items[1].name, "Second Item");
+    assert_eq!(all_items[2].name, "Third Item");
+
+    // Verify timestamps are in order
+    assert!(all_items[0].created_at <= all_items[1].created_at);
+    assert!(all_items[1].created_at <= all_items[2].created_at);
+
+    // Verify IDs match
+    assert_eq!(all_items[0].id, item1.id);
+    assert_eq!(all_items[1].id, item2.id);
+    assert_eq!(all_items[2].id, item3.id);
+
+    Ok(())
+}

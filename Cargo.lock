@@ -921,6 +921,7 @@ dependencies = [
  "crossterm 0.29.0",
  "dirs",
  "ratatui",
+ "serde",
  "sqlx",
  "tokio",
 ]

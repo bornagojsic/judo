@@ -1,7 +1,97 @@
 use anyhow::{Context, Result};
+use serde::{Deserialize, Serialize};
 use sqlx::migrate::Migrator;
 use sqlx::sqlite::{SqliteConnectOptions, SqlitePool};
 use std::str::FromStr;
+
+
+// Default variables
+const DEFAULT_DB_NAME: &str = "dojo";
+const DEFAULT_DB_FILE: &str = "judo.db";
+
+/// Config file definition
+#[derive(Deserialize, Serialize)]
+pub struct ConfigFile {
+    default: String,
+    dbs: Vec<DBConfig>,
+}
+
+/// Database configuration
+#[derive(Deserialize, Serialize)]
+pub struct DBConfig {
+    name: String,
+    path: String,
+}
+
+impl Default for DBConfig {
+    fn default() -> Self {
+        // Use data directory to standardize storage
+        let data_dir = dirs::data_dir().unwrap().join("judo");
+
+        // Create directory
+        std::fs::create_dir_all(&data_dir).unwrap();
+
+        // Create path to db
+        let path = data_dir.join(DEFAULT_DB_FILE).to_str().unwrap().to_string();
+
+        Self {
+            name: DEFAULT_DB_NAME.to_string(),
+            path: path,
+        }
+    }
+}
+
+impl Default for ConfigFile {
+
+    /// By default, the name is the default name with default config
+    fn default() -> Self {
+        Self {
+            default: DEFAULT_DB_NAME.to_string(),
+            dbs: vec![DBConfig::default()]
+        }
+    }
+}
+
+// impl DBConfig {
+
+//     /// Create new database. Only name is necessary, path is created if missing by default
+//     pub fn new(name: String, path: Option<String>) -> Result<Self> {
+//         if None(path) {
+
+//             // Use data directory to standardize storage
+//             let data_dir = dirs::data_dir().unwrap().join("judo");
+
+//             // Create directory
+//             std::fs::create_dir_all(&data_dir).unwrap();
+
+//             // Create path to db
+//             let db_path = data_dir.join(format!("{}.db", name));
+
+//             if db_path.exists(){
+//                 todo!()
+//             }
+
+//             Ok(Self {
+//                 name: name, 
+//                 path: db_path.to_str().unwrap().to_string()
+//             })
+
+//         } else {
+
+//             let db_path = Path::from(path);
+
+//             if !db_path.exists(){
+//                 todo!()
+//             }
+
+
+//             Ok(Self {
+//                 name: name,
+//                 path: db_path
+//             })
+//         }
+//     }
+// }
 
 fn get_db_connection_str() -> Result<String> {
     // Use data directory to standardize storage

@@ -24,16 +24,16 @@ impl EventHandler {
                 if let Some(selected_list) = app.lists_component.get_selected_list_mut()
                     && let Err(e) =
                         ItemsComponent::delete_selected_item(selected_list, &app.pool).await
-                    {
-                        eprintln!("Failed to delete item: {}", e);
-                    }
+                {
+                    eprintln!("Failed to delete item: {}", e);
+                }
             }
             KeyCode::Enter => {
                 if let Some(selected_list) = app.lists_component.get_selected_list_mut()
                     && let Err(e) = ItemsComponent::toggle_item_done(selected_list, &app.pool).await
-                    {
-                        eprintln!("Failed to toggle item: {}", e);
-                    }
+                {
+                    eprintln!("Failed to toggle item: {}", e);
+                }
             }
             KeyCode::Down => {
                 if let Some(selected_list) = app.lists_component.get_selected_list_mut() {
@@ -95,16 +95,17 @@ impl EventHandler {
             KeyCode::Enter => {
                 let item_name = app.new_item_state.get_text().to_string();
                 if !item_name.trim().is_empty()
-                    && let Some(selected_list) = app.lists_component.get_selected_list_mut() {
-                        if let Err(e) =
-                            ItemsComponent::create_item(selected_list, item_name, &app.pool).await
-                        {
-                            eprintln!("Failed to create item: {}", e);
-                        } else {
-                            app.current_screen = CurrentScreen::Main;
-                            app.new_item_state.clear();
-                        }
+                    && let Some(selected_list) = app.lists_component.get_selected_list_mut()
+                {
+                    if let Err(e) =
+                        ItemsComponent::create_item(selected_list, item_name, &app.pool).await
+                    {
+                        eprintln!("Failed to create item: {}", e);
+                    } else {
+                        app.current_screen = CurrentScreen::Main;
+                        app.new_item_state.clear();
                     }
+                }
             }
             _ => {}
         }

@@ -17,18 +17,33 @@ pub trait CursorState {
     fn set_cursor_pos(&mut self, pos: usize);
 
     /// Add a character at the cursor position
+    /// Beware because some chars could be multi-byte.
+    /// That's why we need to distinguish the char and byte position
     fn add_char(&mut self, c: char) {
-        let pos = self.get_cursor_pos();
-        self.get_text_mut().insert(pos, c);
-        self.set_cursor_pos(pos + 1);
+        let char_pos = self.get_cursor_pos();
+        let chars: Vec<char> = self.get_text().chars().collect();
+
+        // Convert character position to byte position
+        let byte_pos = if char_pos == 0 {
+            0
+        } else if char_pos >= chars.len() {
+            self.get_text().len()
+        } else {
+            chars[..char_pos].iter().map(|c| c.len_utf8()).sum()
+        };
+
+        self.get_text_mut().insert(byte_pos, c);
+        self.set_cursor_pos(char_pos + 1);
     }
 
     /// Remove the character before the cursor (backspace)
     fn remove_char_before_cursor(&mut self) {
-        let pos = self.get_cursor_pos();
-        if pos > 0 {
-            self.get_text_mut().remove(pos - 1);
-            self.set_cursor_pos(pos - 1);
+        let char_pos = self.get_cursor_pos();
+        if char_pos > 0 {
+            let chars: Vec<char> = self.get_text().chars().collect();
+            let byte_pos = chars[..char_pos - 1].iter().map(|c| c.len_utf8()).sum();
+            self.get_text_mut().remove(byte_pos);
+            self.set_cursor_pos(char_pos - 1);
         }
     }
 

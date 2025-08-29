@@ -1,9 +1,9 @@
 pub struct DBSelector;
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Alignment, Rect};
-use ratatui::style::{Color, Style, Stylize};
+use ratatui::style::{Color, Style};
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, BorderType, Borders, Padding, Paragraph, StatefulWidget, Widget};
+use ratatui::widgets::{Block, BorderType, Borders, Padding, Paragraph, Widget};
 use std::str::FromStr;
 
 impl DBSelector {

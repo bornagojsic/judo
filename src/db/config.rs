@@ -37,7 +37,7 @@ impl Default for DBConfig {
 
         Self {
             name: DEFAULT_DB_NAME.to_string(),
-            connection_str: connection_str,
+            connection_str,
         }
     }
 }

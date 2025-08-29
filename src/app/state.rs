@@ -2,7 +2,8 @@ use crate::app::events::EventHandler;
 use crate::db::config::{Config, DBConfig};
 use crate::db::connections::init_db;
 use crate::ui::components::{
-    AddItemPopup, AddListPopup, ItemsComponent, ListsComponent, NewItemState, NewListState,
+    AddItemPopup, AddListPopup, DBSelector, ItemsComponent, ListsComponent, Logo, NewItemState,
+    NewListState,
 };
 use crate::ui::cursor::CursorState;
 use crate::ui::layout::AppLayout;
@@ -141,10 +142,16 @@ impl Widget for &mut App {
         AppLayout::render_background(area, buf);
 
         // Calculate layout areas
-        let (header_area, lists_area, items_area) = AppLayout::calculate_main_layout(area);
+        let (lists_area, items_area, logo_area, db_selector_area, closed_selector_area) =
+            AppLayout::calculate_main_layout(area);
+
+        // Render logo
+        Logo::render(logo_area, buf);
+
+        // Render db selector
+        DBSelector::render(closed_selector_area, buf);
 
         // Render the main areas
-        AppLayout::render_header(header_area, buf);
         self.lists_component.render(lists_area, buf);
 
         // Render items with the selected list

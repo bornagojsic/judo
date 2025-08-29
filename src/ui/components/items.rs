@@ -93,6 +93,7 @@ impl ItemsComponent {
     pub fn render(selected_list: Option<&mut UIList>, area: Rect, buf: &mut Buffer) {
         // Command hints for items
         let list_command_hints = Line::from(vec![
+            Span::raw(" "),
             Span::styled(" ↓↑ ", Style::default()),
             Span::styled(
                 "[a]",
@@ -110,11 +111,13 @@ impl ItemsComponent {
                 "el ",
                 Style::default().fg(Color::from_str("#FCF1D5").unwrap()),
             ),
-        ]);
+            Span::raw(" "),
+        ])
+        .left_aligned();
 
         let block = Block::default()
-            .padding(Padding::horizontal(2))
-            .title_top(Line::raw(" Items ").centered())
+            .padding(Padding::new(2, 2, 1, 1))
+            .title_top(Line::raw("  I T E M S  ").left_aligned())
             .title_bottom(list_command_hints)
             .title_alignment(Alignment::Center)
             .borders(Borders::ALL)
@@ -141,14 +144,8 @@ impl ItemsComponent {
 
             StatefulWidget::render(list, area, buf, &mut ui_list.item_state);
         } else {
-            // No list selected - show instruction message
-            Paragraph::new(Span::styled(
-                "Select or add a to-do list first",
-                Style::default().italic(),
-            ))
-            .left_aligned()
-            .block(block)
-            .render(area, buf);
+            // No list selected - render empty block
+            block.render(area, buf);
         }
     }
 }

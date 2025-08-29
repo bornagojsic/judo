@@ -14,6 +14,7 @@ impl EventHandler {
             KeyCode::Char('w') => app.lists_component.select_previous(), // Navigate up in lists
             KeyCode::Char('A') => app.enter_add_list_screen(), // Add new list
             KeyCode::Char('a') => app.enter_add_item_screen(), // Add new item
+            KeyCode::Char('C') => app.enter_change_db_screen(), // Change database
             KeyCode::Char('D') => {
                 if let Err(e) = app.lists_component.delete_selected_list(&app.pool).await {
                     // Log error but don't crash the application
@@ -104,6 +105,52 @@ impl EventHandler {
                     } else {
                         app.current_screen = CurrentScreen::Main;
                         app.new_item_state.clear();
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+
+    /// Handle change of db
+    pub async fn handle_change_db_screen_key(app: &mut App, key: KeyEvent) {
+        match key.code {
+            KeyCode::Esc => app.exit_change_db_without_saving(),
+            KeyCode::Up => app.select_previous_db(),
+            KeyCode::Down => app.select_next_db(),
+            KeyCode::Enter => {
+                if let Err(e) = app.switch_to_selected_db().await {
+                    eprintln!("Failed to switch database: {}", e);
+                }
+            }
+            KeyCode::Char('A') => app.enter_add_db_screen(),
+            KeyCode::Char('S') => {
+                // Set selected database as default
+                if let Err(e) = app.set_selected_db_as_default().await {
+                    eprintln!("Failed to set database as default: {}", e);
+                }
+            }
+            _ => {}
+        }
+    }
+
+    /// Handle key press from user in add database screen
+    pub async fn handle_add_db_screen_key(app: &mut App, key: KeyEvent) {
+        match key.code {
+            KeyCode::Esc => app.exit_add_db_without_saving(),
+            KeyCode::Backspace => app.new_db_state.remove_char_before_cursor(),
+            KeyCode::Delete => app.new_db_state.delete_char_after_cursor(),
+            KeyCode::Char(value) => app.new_db_state.add_char(value),
+            KeyCode::Left => app.new_db_state.move_cursor_left(),
+            KeyCode::Right => app.new_db_state.move_cursor_right(),
+            KeyCode::Enter => {
+                let db_name = app.new_db_state.get_text().to_string();
+                if !db_name.trim().is_empty() {
+                    if let Err(e) = app.create_new_database(db_name, false).await {
+                        eprintln!("Failed to create database: {}", e);
+                    } else {
+                        app.current_screen = CurrentScreen::ChangeDB;
+                        app.new_db_state.clear();
                     }
                 }
             }

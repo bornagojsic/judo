@@ -7,7 +7,7 @@ use ratatui::widgets::{Block, BorderType, Borders, Padding, Paragraph, Widget};
 use std::str::FromStr;
 
 impl DBSelector {
-    pub fn render(area: Rect, buf: &mut Buffer) {
+    pub fn render(area: Rect, buf: &mut Buffer, current_db_name: &str) {
         // Command hints for db
         let list_command_hints = Line::from(vec![
             Span::raw(" "),
@@ -31,7 +31,7 @@ impl DBSelector {
             .borders(Borders::ALL)
             .border_type(BorderType::Rounded);
 
-        Paragraph::new("dojo")
+        Paragraph::new(current_db_name)
             .left_aligned()
             .block(block)
             .render(area, buf);

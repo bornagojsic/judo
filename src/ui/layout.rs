@@ -37,7 +37,7 @@ impl AppLayout {
         let [header_area, content_area] = main_layout.areas(padded_area);
 
         // Divide header between pure logo and database selector
-        let header_layout = Layout::horizontal([Constraint::Min(50), Constraint::Length(25)]);
+        let header_layout = Layout::horizontal([Constraint::Min(50), Constraint::Length(35)]);
 
         // Extract the areas from the header layout
         let [logo_area, db_selector_area] = header_layout.areas(header_area);

@@ -10,4 +10,4 @@ pub use input_states::{NewItemState, NewListState};
 pub use items::ItemsComponent;
 pub use lists::ListsComponent;
 pub use logo::Logo;
-pub use popups::{AddItemPopup, AddListPopup};
+pub use popups::{AddDBPopup, AddItemPopup, AddListPopup, ChangeDBPopup};

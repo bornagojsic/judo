@@ -1,4 +1,5 @@
 use crate::app::events::EventHandler;
+use crate::db::config::{Config, DBConfig};
 use crate::db::connections::init_db;
 use crate::ui::components::{
     AddItemPopup, AddListPopup, ItemsComponent, ListsComponent, NewItemState, NewListState,
@@ -26,6 +27,10 @@ pub enum CurrentScreen {
 
 /// Main application state
 pub struct App {
+    /// Configuration of available databases
+    pub config: Config,
+    /// Config of currently selected database
+    pub current_db_config: DBConfig,
     /// Current active screen (Main, AddList, or AddItem)
     pub current_screen: CurrentScreen,
     /// Database connection pool
@@ -46,11 +51,19 @@ impl App {
     /// Initializes the database connection, loads existing lists from the database,
     /// and sets up the initial UI state.
     pub async fn new() -> Self {
+        // Read the config (creates default if missing)
+        let config = Config::read().expect("Failed to read config file");
+
+        // Extract the default db and its connection string
+        let default_db_config = config
+            .get_default()
+            .expect("Couldn't fetch default database");
+        let pool = init_db(&default_db_config.connection_str)
+            .await
+            .expect("Failed to connect to database");
+
         // Start from main screen
         let current_screen = CurrentScreen::Main;
-
-        // Init connection to db
-        let pool = init_db().await.expect("Failed to connect to database");
 
         // Create lists component and load data
         let mut lists_component = ListsComponent::new();
@@ -60,6 +73,8 @@ impl App {
             .expect("Failed to read lists");
 
         Self {
+            config,
+            current_db_config: default_db_config,
             current_screen,
             pool,
             lists_component,

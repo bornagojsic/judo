@@ -1,15 +1,9 @@
 pub struct DBSelector;
-use crate::db::models::{NewTodoItem, TodoItem, UIItem, UIList};
-use anyhow::Result;
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Alignment, Rect};
-use ratatui::style::{Color, Modifier, Style, Stylize};
+use ratatui::style::{Color, Style, Stylize};
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{
-    Block, BorderType, Borders, HighlightSpacing, List, ListItem, Padding, Paragraph,
-    StatefulWidget, Widget,
-};
-use sqlx::SqlitePool;
+use ratatui::widgets::{Block, BorderType, Borders, Padding, Paragraph, StatefulWidget, Widget};
 use std::str::FromStr;
 
 impl DBSelector {

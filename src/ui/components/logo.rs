@@ -1,19 +1,11 @@
 pub struct Logo;
-use crate::db::models::{NewTodoItem, TodoItem, UIItem, UIList};
-use anyhow::Result;
 use ratatui::buffer::Buffer;
-use ratatui::layout::{Alignment, Rect};
-use ratatui::style::{Color, Modifier, Style, Stylize};
-use ratatui::text::{Line, Span};
-use ratatui::widgets::{
-    Block, BorderType, Borders, HighlightSpacing, List, ListItem, Padding, Paragraph,
-    StatefulWidget, Widget,
-};
-use sqlx::SqlitePool;
-use std::str::FromStr;
+use ratatui::layout::Rect;
+use ratatui::style::Stylize;
+use ratatui::widgets::{Block, Padding, Paragraph, Widget};
 
 // Use the judo ascii logo
-const ascii_logo: &str = r#"
+const ASCII_LOGO: &str = r#"
      ██╗██╗   ██╗██████╗  ██████╗ 
      ██║██║   ██║██╔══██╗██╔═══██╗
      ██║██║   ██║██║  ██║██║   ██║
@@ -27,7 +19,7 @@ impl Logo {
         // Define a block and pad
         let block = Block::default().padding(Padding::horizontal(2));
 
-        Paragraph::new(ascii_logo)
+        Paragraph::new(ASCII_LOGO)
             .bold()
             .left_aligned()
             .block(block)

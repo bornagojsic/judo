@@ -5,8 +5,7 @@ use ratatui::layout::{Alignment, Rect};
 use ratatui::style::{Color, Modifier, Style, Stylize};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{
-    Block, BorderType, Borders, HighlightSpacing, List, ListItem, Padding, Paragraph,
-    StatefulWidget, Widget,
+    Block, BorderType, Borders, HighlightSpacing, List, ListItem, Padding, StatefulWidget, Widget,
 };
 use sqlx::SqlitePool;
 use std::str::FromStr;

@@ -1,10 +1,7 @@
 use ratatui::buffer::Buffer;
-use ratatui::layout::Alignment;
 use ratatui::layout::{Constraint, Layout, Margin, Rect};
 use ratatui::style::{Color, Style, Stylize};
-use ratatui::text::Line;
-use ratatui::widgets::{Block, Padding, Paragraph, Widget};
-use ratatui::widgets::{BorderType, Borders};
+use ratatui::widgets::{Block, Widget};
 use std::str::FromStr;
 
 pub struct AppLayout;

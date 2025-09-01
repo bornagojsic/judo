@@ -1,6 +1,6 @@
 [package]
 name = "judo"
-version = "1.0.5"
+version = "1.1.0"
 edition = "2024"
 authors = ["Giacomo Piccinini <giacomo.piccinini@proton.me>"]
 license = "MIT"
@@ -25,8 +25,10 @@ color-eyre = "0.6.5"
 crossterm = "0.29.0"
 dirs = "6.0.0"
 ratatui = "0.29.0"
+serde = { version = "1.0.219", features = ["derive"] }
 sqlx = { version = "0.8.6", features = ["runtime-tokio", "sqlite", "chrono", "macros"] }
 tokio = { version = "1.47.1", features = ["macros", "rt-multi-thread"] }
+toml = "0.9.5"
 
 [profile.release]
 lto = true

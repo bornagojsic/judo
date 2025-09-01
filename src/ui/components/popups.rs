@@ -1,9 +1,12 @@
+use crate::db::config::Config;
 use crate::ui::cursor::CursorState;
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
-use ratatui::style::{Color, Style, Stylize};
+use ratatui::style::{Color, Style};
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, BorderType, Borders, Padding, Paragraph, Widget, Wrap};
+use ratatui::widgets::{
+    Block, BorderType, Borders, List, ListItem, Padding, Paragraph, Widget, Wrap,
+};
 use std::str::FromStr;
 
 pub struct AddListPopup;
@@ -13,6 +16,7 @@ impl AddListPopup {
     pub fn render<T: CursorState>(state: &T, area: Rect, buf: &mut Buffer) {
         // Command hints for add list popup
         let add_list_command_hints = Line::from(vec![
+            Span::raw(" "),
             Span::styled(
                 "[E]",
                 Style::default().fg(Color::from_str("#FFA69E").unwrap()),
@@ -21,6 +25,7 @@ impl AddListPopup {
                 "sc",
                 Style::default().fg(Color::from_str("#FCF1D5").unwrap()),
             ),
+            Span::raw(" "),
         ]);
 
         // Calculate popup dimensions
@@ -48,8 +53,9 @@ impl AddListPopup {
 
         // Define the popup block with styling
         let popup_block = Block::new()
+            .padding(Padding::new(2, 2, 1, 1))
             .title(" Add List ")
-            .title_style(Style::new().fg(Color::from_str("#FCF1D5").unwrap()).bold())
+            .title_style(Style::new().fg(Color::from_str("#FCF1D5").unwrap()))
             .title_bottom(add_list_command_hints)
             .borders(Borders::ALL)
             .border_style(Style::new().fg(Color::from_str("#FCF1D5").unwrap()))
@@ -75,6 +81,7 @@ impl AddItemPopup {
     pub fn render<T: CursorState>(state: &T, area: Rect, buf: &mut Buffer) {
         // Command hints for add item popup
         let add_item_command_hints = Line::from(vec![
+            Span::raw(" "),
             Span::styled(
                 "[E]",
                 Style::default().fg(Color::from_str("#FFA69E").unwrap()),
@@ -83,6 +90,7 @@ impl AddItemPopup {
                 "sc",
                 Style::default().fg(Color::from_str("#FCF1D5").unwrap()),
             ),
+            Span::raw(" "),
         ]);
 
         // Calculate popup dimensions
@@ -110,8 +118,9 @@ impl AddItemPopup {
 
         // Define the popup block with styling
         let popup_block = Block::new()
+            .padding(Padding::new(2, 2, 1, 1))
             .title(" Add Item ")
-            .title_style(Style::new().fg(Color::from_str("#FCF1D5").unwrap()).bold())
+            .title_style(Style::new().fg(Color::from_str("#FCF1D5").unwrap()))
             .title_bottom(add_item_command_hints)
             .borders(Borders::ALL)
             .border_style(Style::new().fg(Color::from_str("#FCF1D5").unwrap()))
@@ -127,5 +136,137 @@ impl AddItemPopup {
             .wrap(Wrap { trim: true })
             .block(popup_block)
             .render(popup_area, buf);
+    }
+}
+
+pub struct ChangeDBPopup;
+
+impl ChangeDBPopup {
+    /// Render popup for selecting database
+    pub fn render(config: &Config, selected_index: usize, area: Rect, buf: &mut Buffer) {
+        // Command hints for change db popup
+        let change_db_command_hints = Line::from(vec![
+            Span::raw(" "),
+            Span::styled(" ↑↓ ", Style::default()),
+            Span::styled(
+                "[A]",
+                Style::default().fg(Color::from_str("#FFA69E").unwrap()),
+            ),
+            Span::styled(
+                "dd",
+                Style::default().fg(Color::from_str("#FCF1D5").unwrap()),
+            ),
+            Span::styled(
+                " [S]",
+                Style::default().fg(Color::from_str("#FFA69E").unwrap()),
+            ),
+            Span::styled(
+                "et Default",
+                Style::default().fg(Color::from_str("#FCF1D5").unwrap()),
+            ),
+            Span::styled(
+                " [E]",
+                Style::default().fg(Color::from_str("#FFA69E").unwrap()),
+            ),
+            Span::styled(
+                "sc",
+                Style::default().fg(Color::from_str("#FCF1D5").unwrap()),
+            ),
+            Span::raw(" "),
+        ]);
+
+        Block::default()
+            .style(
+                Style::default()
+                    .bg(Color::from_str("#002626").unwrap())
+                    .fg(Color::from_str("#FCF1D5").unwrap()),
+            )
+            .render(area, buf);
+
+        // Define the popup block with styling
+        let popup_block = Block::new()
+            .padding(Padding::new(2, 2, 1, 1))
+            .title(" Select Database ")
+            .title_style(Style::new().fg(Color::from_str("#FCF1D5").unwrap()))
+            .title_bottom(change_db_command_hints)
+            .borders(Borders::ALL)
+            .border_style(Style::new().fg(Color::from_str("#FCF1D5").unwrap()))
+            .border_type(BorderType::Rounded);
+
+        // Create list items from databases
+        let items: Vec<ListItem> = config
+            .dbs
+            .iter()
+            .map(|db| ListItem::from(db.name.clone()))
+            .collect();
+
+        // Create a mutable list state for rendering
+        let mut temp_list_state = ratatui::widgets::ListState::default();
+        temp_list_state.select(Some(selected_index));
+
+        // Render the database list
+        let list = List::new(items)
+            .block(popup_block)
+            .highlight_symbol(" ▸ ") // Selection indicator
+            .highlight_style(
+                // Swap foreground and background for selected item
+                Style::default()
+                    .bg(Color::from_str("#FCF1D5").unwrap())
+                    .fg(Color::from_str("#002626").unwrap()),
+            )
+            .highlight_spacing(ratatui::widgets::HighlightSpacing::Always);
+
+        ratatui::widgets::StatefulWidget::render(list, area, buf, &mut temp_list_state);
+    }
+}
+
+pub struct AddDBPopup;
+
+impl AddDBPopup {
+    /// Render popup for entering a new database name
+    pub fn render<T: CursorState>(state: &T, area: Rect, buf: &mut Buffer) {
+        // Command hints for add db popup
+        let add_db_command_hints = Line::from(vec![
+            Span::raw(" "),
+            Span::styled(
+                "[E]",
+                Style::default().fg(Color::from_str("#FFA69E").unwrap()),
+            ),
+            Span::styled(
+                "sc",
+                Style::default().fg(Color::from_str("#FCF1D5").unwrap()),
+            ),
+            Span::raw(" "),
+        ]);
+
+        // Clear the entire area background first
+        Block::default()
+            .style(
+                Style::default()
+                    .bg(Color::from_str("#002626").unwrap())
+                    .fg(Color::from_str("#FCF1D5").unwrap()),
+            )
+            .render(area, buf);
+
+        // Define the popup block with styling - use full width
+        let popup_block = Block::new()
+            .padding(Padding::new(2, 2, 1, 1))
+            .title(" Add Database ")
+            .title_style(Style::new().fg(Color::from_str("#FCF1D5").unwrap()))
+            .title_bottom(add_db_command_hints)
+            .borders(Borders::ALL)
+            .border_style(Style::new().fg(Color::from_str("#FCF1D5").unwrap()))
+            .border_type(BorderType::Rounded)
+            .padding(Padding::horizontal(1));
+
+        // Define the text to render
+        let text_spans = state.create_cursor_text_spans();
+        let text_line = Line::from(text_spans);
+
+        // Render the input field using the full area
+        Paragraph::new(text_line)
+            .wrap(Wrap { trim: true })
+            .block(popup_block)
+            .render(area, buf);
     }
 }

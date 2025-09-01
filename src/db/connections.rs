@@ -3,18 +3,6 @@ use sqlx::migrate::Migrator;
 use sqlx::sqlite::{SqliteConnectOptions, SqlitePool};
 use std::str::FromStr;
 
-fn get_db_connection_str() -> Result<String> {
-    // Use data directory to standardize storage
-    let data_dir = dirs::data_dir()
-        .with_context(|| "Unable to find data directory")?
-        .join("judo");
-
-    // Create directory
-    std::fs::create_dir_all(&data_dir).with_context(|| "Unable to create data directory")?;
-
-    Ok(format!("sqlite:{}", data_dir.join("todos.db").display()))
-}
-
 /// Create connection to SQLite DB pool and create DB if not present
 async fn get_db_pool(db_connection_str: &str) -> Result<SqlitePool> {
     // Create connection options
@@ -45,9 +33,8 @@ async fn run_migrations(pool: &SqlitePool) -> Result<()> {
 
 /// Initialize database with connection and run migrations
 /// This is safe to call on every startup - migrations are idempotent
-pub async fn init_db() -> Result<SqlitePool> {
-    let connection_string = get_db_connection_str()?;
-    let pool = get_db_pool(&connection_string).await?;
+pub async fn init_db(connection_str: &str) -> Result<SqlitePool> {
+    let pool = get_db_pool(connection_str).await?;
 
     // Always run migrations on startup - they're idempotent and fast
     run_migrations(&pool).await?;
@@ -60,30 +47,17 @@ mod test {
     use super::*;
     use anyhow::Result;
 
-    #[test]
-    fn test_get_db_connection_str_success() -> Result<()> {
-        let _db_connection = get_db_connection_str()?;
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn test_connection_pool_success() -> Result<()> {
-        let connection_string = get_db_connection_str()?;
-        let _pool = get_db_pool(&connection_string).await?;
-        Ok(())
-    }
-
     #[tokio::test]
     async fn test_connection_pool_in_memory_success() -> Result<()> {
-        let connection_string = "sqlite::memory:".to_string();
-        let _pool = get_db_pool(&connection_string).await?;
+        let connection_str = "sqlite::memory:".to_string();
+        let _pool = get_db_pool(&connection_str).await?;
         Ok(())
     }
 
     #[tokio::test]
     async fn test_migrations() -> Result<()> {
-        let connection_string = "sqlite::memory:".to_string();
-        let pool = get_db_pool(&connection_string).await?;
+        let connection_str = "sqlite::memory:".to_string();
+        let pool = get_db_pool(&connection_str).await?;
         run_migrations(&pool).await?;
         Ok(())
     }

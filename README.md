@@ -22,6 +22,7 @@ A terminal-based todo list application.
 - [Installation](#installation)
 - [Usage](#usage)
 - [Key Bindings](#key-bindings)
+- [Configuration](#configuration)
 - [Data Storage](#data-storage)
 
 ## What Judo Looks Like
@@ -31,7 +32,7 @@ A terminal-based todo list application.
 
 Judo (*Just Do It*) is a simple TUI for managing todo lists. You can create multiple lists, add items to them, mark items as complete, and delete items or entire lists when you're done.
 
-The interface shows your lists on the left side and the items from the selected list on the right side. All your data is saved locally on your computer, so your todos persist between sessions.
+The interface shows your lists on the left side and the items from the selected list on the right side. You can manage multiple databases, switch between them, and create new ones on the fly. All your data is saved locally on your computer, so your todos persist between sessions.
 
 ## Why Another Todo App
 
@@ -66,7 +67,7 @@ When you start Judo, you'll see the main interface with two panels:
 - **Left panel**: Your todo lists
 - **Right panel**: Items from the selected list
 
-Navigate between lists and items using the keyboard. All changes are automatically saved to your local database.
+Navigate between lists and items using the keyboard. You can switch between different databases, create new ones, and manage your todos across multiple databases. All changes are automatically saved to your local database.
 
 ## Key Bindings
 
@@ -89,23 +90,69 @@ Navigate between lists and items using the keyboard. All changes are automatical
 | `a` | Add new item to selected list |
 | `D` | Delete selected list |
 | `d` | Delete selected item |
+| `C` | Change/switch database |
 | `Enter` | Toggle item completion status |
 | `q` | Quit application |
 
-### Add List/Item Screens
+### Database Management Screen
 | Key | Action |
 |-----|--------|
-| `Enter` | Save and return to main screen |
-| `Esc` | Cancel and return to main screen |
+| `↑` | Move up in database list |
+| `↓` | Move down in database list |
+| `Enter` | Switch to selected database |
+| `A` | Add new database |
+| `S` | Set selected database as default |
+| `Esc` | Return to main screen |
+
+### Add List/Item/Database Screens
+| Key | Action |
+|-----|--------|
+| `Enter` | Save and return to previous screen |
+| `Esc` | Cancel and return to previous screen |
 | `Backspace` | Delete last character |
+| `Delete` | Delete character after cursor |
+| `←` | Move cursor left |
+| `→` | Move cursor right |
+
+## Configuration
+
+Judo uses a configuration file to manage multiple databases. The configuration is stored in:
+
+- **Linux/macOS**: `~/.config/judo/judo.toml`
+- **Windows**: `%APPDATA%\judo\judo.toml`
+
+The configuration file is automatically created on first run with a default database. You can add new databases through the UI or manually edit the configuration file. The default database is called "dojo". 
+
+### Example Configuration
+
+```toml
+default = "dojo"
+
+[[dbs]]
+name = "dojo"
+connection_str = "sqlite:/path/to/data/judo.db"
+
+[[dbs]]
+name = "work"
+connection_str = "sqlite:/path/to/data/work.db"
+
+[[dbs]]
+name = "personal"
+connection_str = "sqlite:/path/to/data/personal.db"
+```
 
 ## Data Storage
 
-Your todo lists and items are stored in a local SQLite database on your computer. This means:
+Your todo lists and items are stored in local SQLite databases on your computer. This means:
 
 - Your data persists between application sessions
 - No internet connection required
 - Your todos remain private on your machine
-- You can backup the database file if needed
+- You can have multiple databases for different contexts (work, personal, projects, etc.)
+- You can backup individual database files if needed
+- Configuration and databases are stored in standard system directories
 
-The database is created automatically when you first run the application.
+The databases and configuration are created automatically when you first run the application. Database files are stored in:
+
+- **Linux/macOS**: `~/.local/share/judo/`
+- **Windows**: `%APPDATA%\judo\`

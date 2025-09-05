@@ -42,12 +42,8 @@ pub struct App {
     pub pool: SqlitePool,
     /// Lists component for managing todo lists
     pub lists_component: ListsComponent,
-    /// State of list being added
-    pub new_list_state: InputState,
-    /// State of item being added
-    pub new_item_state: InputState,
-    /// State of database being added
-    pub new_db_state: InputState,
+    /// State of user-provided input
+    pub input_state: InputState,
     /// Selected database index for DB selector
     pub selected_db_index: usize,
     /// Flag to indicate if the application should exit
@@ -87,9 +83,7 @@ impl App {
             current_screen,
             pool,
             lists_component,
-            new_list_state: InputState::new(),
-            new_item_state: InputState::new(),
-            new_db_state: InputState::new(),
+            input_state: InputState::new(),
             selected_db_index: 0,
             exit: false,
         }
@@ -173,7 +167,7 @@ impl App {
     async fn handle_key_event(&mut self, key: KeyEvent) {
         match self.current_screen {
             CurrentScreen::Main => EventHandler::handle_main_screen_key(self, key).await,
-            CurrentScreen::AddList => EventHandler::handle_add_list_screen_key(self, key).await,
+            CurrentScreen::AddList => EventHandler::handle_add_or_modify_list_screen_key(self, key).await,
             CurrentScreen::AddItem => EventHandler::handle_add_item_screen_key(self, key).await,
             CurrentScreen::ChangeDB => EventHandler::handle_change_db_screen_key(self, key).await,
             CurrentScreen::AddDB => EventHandler::handle_add_db_screen_key(self, key).await,
@@ -181,7 +175,7 @@ impl App {
     }
 
     /// Enter the "Add List" screen by opening the corresponding pop-up
-    pub fn enter_add_list_screen(&mut self) {
+    pub fn enter_add_or_modify_list_screen(&mut self) {
         self.current_screen = CurrentScreen::AddList;
     }
 
@@ -200,15 +194,15 @@ impl App {
     }
 
     /// Exit the Add List screen without saving
-    pub fn exit_add_list_without_saving(&mut self) {
+    pub fn exit_add_or_modify_list_without_saving(&mut self) {
         self.current_screen = CurrentScreen::Main;
-        self.new_list_state.clear();
+        self.input_state.clear();
     }
 
     /// Exit the Add Item screen without saving
     pub fn exit_add_item_without_saving(&mut self) {
         self.current_screen = CurrentScreen::Main;
-        self.new_item_state.clear();
+        self.input_state.clear();
     }
 
     /// Enter the "Change DB" screen by opening the corresponding pop-up
@@ -236,7 +230,7 @@ impl App {
     /// Exit the Add DB screen without saving
     pub fn exit_add_db_without_saving(&mut self) {
         self.current_screen = CurrentScreen::ChangeDB;
-        self.new_db_state.clear();
+        self.input_state.clear();
     }
 
     /// Move selection up in DB list
@@ -333,12 +327,12 @@ impl Widget for &mut App {
 
         // Render popup screens if active
         match self.current_screen {
-            CurrentScreen::AddList => AddListPopup::render(&self.new_list_state, lists_area, buf),
-            CurrentScreen::AddItem => AddItemPopup::render(&self.new_item_state, items_area, buf),
+            CurrentScreen::AddList => AddListPopup::render(&self.input_state, lists_area, buf),
+            CurrentScreen::AddItem => AddItemPopup::render(&self.input_state, items_area, buf),
             CurrentScreen::ChangeDB => {
                 ChangeDBPopup::render(&self.config, self.selected_db_index, db_selector_area, buf)
             }
-            CurrentScreen::AddDB => AddDBPopup::render(&self.new_db_state, db_selector_area, buf),
+            CurrentScreen::AddDB => AddDBPopup::render(&self.input_state, db_selector_area, buf),
             _ => {}
         }
     }

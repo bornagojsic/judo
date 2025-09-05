@@ -15,7 +15,7 @@ impl AddListPopup {
     /// Render popup for entering a new list name
     pub fn render<T: CursorState>(state: &T, area: Rect, buf: &mut Buffer) {
         // Command hints for add list popup
-        let add_list_command_hints = Line::from(vec![
+        let add_or_modify_list_command_hints = Line::from(vec![
             Span::raw(" "),
             Span::styled(
                 "[E]",
@@ -56,7 +56,7 @@ impl AddListPopup {
             .padding(Padding::new(2, 2, 1, 1))
             .title(" Add List ")
             .title_style(Style::new().fg(Color::from_str("#FCF1D5").unwrap()))
-            .title_bottom(add_list_command_hints)
+            .title_bottom(add_or_modify_list_command_hints)
             .borders(Borders::ALL)
             .border_style(Style::new().fg(Color::from_str("#FCF1D5").unwrap()))
             .border_type(BorderType::Rounded)

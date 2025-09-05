@@ -12,7 +12,7 @@ impl EventHandler {
             KeyCode::Char('q') => app.exit = true, // Quit application
             KeyCode::Char('s') => app.lists_component.select_next(), // Navigate down in lists
             KeyCode::Char('w') => app.lists_component.select_previous(), // Navigate up in lists
-            KeyCode::Char('A') => app.enter_add_list_screen(), // Add new list
+            KeyCode::Char('A') => app.enter_add_or_modify_list_screen(), // Add new list
             KeyCode::Char('a') => app.enter_add_item_screen(), // Add new item
             KeyCode::Char('C') => app.enter_change_db_screen(), // Change database
             KeyCode::Char('M') => app.enter_modify_list_screen(), // Modify existing list
@@ -62,22 +62,22 @@ impl EventHandler {
     }
 
     /// Handle key press from user in add list screen
-    pub async fn handle_add_list_screen_key(app: &mut App, key: KeyEvent) {
+    pub async fn handle_add_or_modify_list_screen_key(app: &mut App, key: KeyEvent) {
         match key.code {
-            KeyCode::Esc => app.exit_add_list_without_saving(),
-            KeyCode::Backspace => app.new_list_state.remove_char_before_cursor(),
-            KeyCode::Delete => app.new_list_state.delete_char_after_cursor(),
-            KeyCode::Char(value) => app.new_list_state.add_char(value),
-            KeyCode::Left => app.new_list_state.move_cursor_left(),
-            KeyCode::Right => app.new_list_state.move_cursor_right(),
+            KeyCode::Esc => app.exit_add_or_modify_list_without_saving(),
+            KeyCode::Backspace => app.input_state.remove_char_before_cursor(),
+            KeyCode::Delete => app.input_state.delete_char_after_cursor(),
+            KeyCode::Char(value) => app.input_state.add_char(value),
+            KeyCode::Left => app.input_state.move_cursor_left(),
+            KeyCode::Right => app.input_state.move_cursor_right(),
             KeyCode::Enter => {
-                let list_name = app.new_list_state.get_text().to_string();
+                let list_name = app.input_state.get_text().to_string();
                 if !list_name.trim().is_empty() {
                     if let Err(e) = app.lists_component.create_list(list_name, &app.pool).await {
                         eprintln!("Failed to create list: {}", e);
                     } else {
                         app.current_screen = CurrentScreen::Main;
-                        app.new_list_state.clear();
+                        app.input_state.clear();
                     }
                 }
             }
@@ -89,13 +89,13 @@ impl EventHandler {
     pub async fn handle_add_item_screen_key(app: &mut App, key: KeyEvent) {
         match key.code {
             KeyCode::Esc => app.exit_add_item_without_saving(),
-            KeyCode::Backspace => app.new_item_state.remove_char_before_cursor(),
-            KeyCode::Delete => app.new_item_state.delete_char_after_cursor(),
-            KeyCode::Left => app.new_item_state.move_cursor_left(),
-            KeyCode::Right => app.new_item_state.move_cursor_right(),
-            KeyCode::Char(value) => app.new_item_state.add_char(value),
+            KeyCode::Backspace => app.input_state.remove_char_before_cursor(),
+            KeyCode::Delete => app.input_state.delete_char_after_cursor(),
+            KeyCode::Left => app.input_state.move_cursor_left(),
+            KeyCode::Right => app.input_state.move_cursor_right(),
+            KeyCode::Char(value) => app.input_state.add_char(value),
             KeyCode::Enter => {
-                let item_name = app.new_item_state.get_text().to_string();
+                let item_name = app.input_state.get_text().to_string();
                 if !item_name.trim().is_empty()
                     && let Some(selected_list) = app.lists_component.get_selected_list_mut()
                 {
@@ -105,7 +105,7 @@ impl EventHandler {
                         eprintln!("Failed to create item: {}", e);
                     } else {
                         app.current_screen = CurrentScreen::Main;
-                        app.new_item_state.clear();
+                        app.input_state.clear();
                     }
                 }
             }
@@ -139,19 +139,19 @@ impl EventHandler {
     pub async fn handle_add_db_screen_key(app: &mut App, key: KeyEvent) {
         match key.code {
             KeyCode::Esc => app.exit_add_db_without_saving(),
-            KeyCode::Backspace => app.new_db_state.remove_char_before_cursor(),
-            KeyCode::Delete => app.new_db_state.delete_char_after_cursor(),
-            KeyCode::Char(value) => app.new_db_state.add_char(value),
-            KeyCode::Left => app.new_db_state.move_cursor_left(),
-            KeyCode::Right => app.new_db_state.move_cursor_right(),
+            KeyCode::Backspace => app.input_state.remove_char_before_cursor(),
+            KeyCode::Delete => app.input_state.delete_char_after_cursor(),
+            KeyCode::Char(value) => app.input_state.add_char(value),
+            KeyCode::Left => app.input_state.move_cursor_left(),
+            KeyCode::Right => app.input_state.move_cursor_right(),
             KeyCode::Enter => {
-                let db_name = app.new_db_state.get_text().to_string();
+                let db_name = app.input_state.get_text().to_string();
                 if !db_name.trim().is_empty() {
                     if let Err(e) = app.create_new_database(db_name, false).await {
                         eprintln!("Failed to create database: {}", e);
                     } else {
                         app.current_screen = CurrentScreen::ChangeDB;
-                        app.new_db_state.clear();
+                        app.input_state.clear();
                     }
                 }
             }

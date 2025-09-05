@@ -15,6 +15,7 @@ impl EventHandler {
             KeyCode::Char('A') => app.enter_add_list_screen(), // Add new list
             KeyCode::Char('a') => app.enter_add_item_screen(), // Add new item
             KeyCode::Char('C') => app.enter_change_db_screen(), // Change database
+            KeyCode::Char('M') => app.enter_modify_list_screen(), // Modify existing list
             KeyCode::Char('D') => {
                 if let Err(e) = app.lists_component.delete_selected_list(&app.pool).await {
                     // Log error but don't crash the application

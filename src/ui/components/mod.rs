@@ -6,7 +6,7 @@ pub mod logo;
 pub mod popups;
 
 pub use db_selector::DBSelector;
-pub use input_states::{NewItemState, NewListState};
+pub use input_states::InputState;
 pub use items::ItemsComponent;
 pub use lists::ListsComponent;
 pub use logo::Logo;

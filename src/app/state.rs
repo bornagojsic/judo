@@ -3,7 +3,7 @@ use crate::db::config::{Config, DBConfig};
 use crate::db::connections::init_db;
 use crate::ui::components::{
     AddDBPopup, AddItemPopup, AddListPopup, ChangeDBPopup, DBSelector, ItemsComponent,
-    ListsComponent, Logo, NewItemState, NewListState,
+    ListsComponent, Logo, InputState,
 };
 use crate::ui::cursor::CursorState;
 use crate::ui::layout::AppLayout;
@@ -43,11 +43,11 @@ pub struct App {
     /// Lists component for managing todo lists
     pub lists_component: ListsComponent,
     /// State of list being added
-    pub new_list_state: NewListState,
+    pub new_list_state: InputState,
     /// State of item being added
-    pub new_item_state: NewItemState,
+    pub new_item_state: InputState,
     /// State of database being added
-    pub new_db_state: NewListState,
+    pub new_db_state: InputState,
     /// Selected database index for DB selector
     pub selected_db_index: usize,
     /// Flag to indicate if the application should exit
@@ -87,9 +87,9 @@ impl App {
             current_screen,
             pool,
             lists_component,
-            new_list_state: NewListState::new(),
-            new_item_state: NewItemState::new(),
-            new_db_state: NewListState::new(),
+            new_list_state: InputState::new(),
+            new_item_state: InputState::new(),
+            new_db_state: InputState::new(),
             selected_db_index: 0,
             exit: false,
         }
@@ -189,6 +189,13 @@ impl App {
     pub fn enter_add_item_screen(&mut self) {
         if self.lists_component.selected().is_some() {
             self.current_screen = CurrentScreen::AddItem;
+        }
+    }
+
+    /// Enter the "Modify List" screen by opening the corresponding pop-up
+    pub fn enter_modify_list_screen(&mut self) {
+        if self.lists_component.get_selected_list_mut().is_some() {
+            self.current_screen = CurrentScreen::AddList;
         }
     }
 

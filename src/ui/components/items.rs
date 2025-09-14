@@ -9,7 +9,6 @@ use ratatui::widgets::{
 };
 use sqlx::SqlitePool;
 use std::str::FromStr;
-
 pub struct ItemsComponent;
 
 impl ItemsComponent {
@@ -95,6 +94,40 @@ impl ItemsComponent {
                 ui_list.item_state.select(None);
             } else if j >= ui_list.items.len() {
                 ui_list.item_state.select(Some(ui_list.items.len() - 1));
+            }
+        }
+        Ok(())
+    }
+
+    /// Move the currently selected item up
+    pub async fn move_selected_item_up(ui_list: &mut UIList, pool: &SqlitePool) -> Result<()> {
+        if let Some(j) = ui_list.item_state.selected() {
+            let mut item = ui_list.items[j].item.clone();
+            item.move_up(pool).await?;
+
+            // Update list elements to reflect the new order
+            ui_list.update_items(pool).await?;
+
+            // Adjust selection to follow the moved item
+            if j > 0 {
+                ui_list.item_state.select(Some(j - 1));
+            }
+        }
+        Ok(())
+    }
+
+    /// Move the currently selected item down
+    pub async fn move_selected_item_down(ui_list: &mut UIList, pool: &SqlitePool) -> Result<()> {
+        if let Some(j) = ui_list.item_state.selected() {
+            let mut item = ui_list.items[j].item.clone();
+            item.move_down(pool).await?;
+
+            // Update list elements to reflect the new order
+            ui_list.update_items(pool).await?;
+
+            // Adjust selection to follow the moved item
+            if j + 1 < ui_list.items.len() {
+                ui_list.item_state.select(Some(j + 1));
             }
         }
         Ok(())

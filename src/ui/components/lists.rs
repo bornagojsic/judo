@@ -51,43 +51,6 @@ impl ListsComponent {
         self.list_state.selected()
     }
 
-    /// Create a new list and refresh data
-    pub async fn create_list(&mut self, name: String, pool: &SqlitePool) -> Result<()> {
-        let new_list = NewTodoList { name };
-        TodoList::create(pool, new_list).await?;
-        self.load_lists(pool).await?;
-        Ok(())
-    }
-
-    /// Update an existing list
-    pub async fn update_list(&mut self, name: String, pool: &SqlitePool) -> Result<()> {
-        if let Some(i) = self.list_state.selected() {
-            let mut list = self.lists[i].list.clone();
-            list.update_name(pool, name).await?;
-            self.load_lists(pool).await?;
-        }
-        Ok(())
-    }
-
-    /// Delete the currently selected list
-    pub async fn delete_selected_list(&mut self, pool: &SqlitePool) -> Result<()> {
-        if let Some(i) = self.list_state.selected() {
-            let list = self.lists[i].list.clone();
-            list.delete(pool).await?;
-
-            // Refresh the lists from database
-            self.load_lists(pool).await?;
-
-            // Adjust selection after deletion
-            if self.lists.is_empty() {
-                self.list_state.select(None);
-            } else if i >= self.lists.len() {
-                self.list_state.select(Some(self.lists.len() - 1));
-            }
-        }
-        Ok(())
-    }
-
     /// Get the currently selected list (mutable)
     pub fn get_selected_list_mut(&mut self) -> Option<&mut UIList> {
         if let Some(i) = self.list_state.selected() {
@@ -104,6 +67,113 @@ impl ListsComponent {
         } else {
             None
         }
+    }
+
+    /// Refresh lists from database (used after reordering)
+    pub async fn refresh_lists(&mut self, pool: &SqlitePool) -> Result<()> {
+        let selected_index = self.list_state.selected();
+        self.load_lists(pool).await?;
+
+        // Restore selection if it was set and still valid
+        if let Some(index) = selected_index {
+            if index < self.lists.len() {
+                self.list_state.select(Some(index));
+            } else if !self.lists.is_empty() {
+                self.list_state.select(Some(self.lists.len() - 1));
+            }
+        }
+
+        Ok(())
+    }
+
+    /// Move the currently selected list up (static method like ItemsComponent)
+    pub async fn move_selected_list_up(
+        lists_component: &mut ListsComponent,
+        pool: &SqlitePool,
+    ) -> Result<()> {
+        if let Some(i) = lists_component.list_state.selected() {
+            let mut list = lists_component.lists[i].list.clone();
+            list.move_up(pool).await?;
+
+            // Refresh lists to reflect the new order
+            lists_component.refresh_lists(pool).await?;
+
+            // Adjust selection to follow the moved list
+            if i > 0 {
+                lists_component.list_state.select(Some(i - 1));
+            }
+        }
+        Ok(())
+    }
+
+    /// Move the currently selected list down (static method like ItemsComponent)
+    pub async fn move_selected_list_down(
+        lists_component: &mut ListsComponent,
+        pool: &SqlitePool,
+    ) -> Result<()> {
+        if let Some(i) = lists_component.list_state.selected() {
+            let mut list = lists_component.lists[i].list.clone();
+            list.move_down(pool).await?;
+
+            // Refresh lists to reflect the new order
+            lists_component.refresh_lists(pool).await?;
+
+            // Adjust selection to follow the moved list
+            if i + 1 < lists_component.lists.len() {
+                lists_component.list_state.select(Some(i + 1));
+            }
+        }
+        Ok(())
+    }
+
+    /// Delete the currently selected list (static method like ItemsComponent)
+    pub async fn delete_selected_list_static(
+        lists_component: &mut ListsComponent,
+        pool: &SqlitePool,
+    ) -> Result<()> {
+        if let Some(i) = lists_component.list_state.selected() {
+            let list = lists_component.lists[i].list.clone();
+            list.delete(pool).await?;
+
+            // Refresh the lists from database
+            lists_component.load_lists(pool).await?;
+
+            // Adjust selection after deletion
+            if lists_component.lists.is_empty() {
+                lists_component.list_state.select(None);
+            } else if i >= lists_component.lists.len() {
+                lists_component
+                    .list_state
+                    .select(Some(lists_component.lists.len() - 1));
+            }
+        }
+        Ok(())
+    }
+
+    /// Create a new list and refresh data (static method like ItemsComponent)
+    pub async fn create_list(
+        lists_component: &mut ListsComponent,
+        name: String,
+        pool: &SqlitePool,
+    ) -> Result<()> {
+        let new_list = NewTodoList { name };
+        TodoList::create(pool, new_list).await?;
+        lists_component.load_lists(pool).await?;
+        Ok(())
+    }
+
+    /// Update an existing list (static method like ItemsComponent)
+    pub async fn update_list(
+        lists_component: &mut ListsComponent,
+        name: String,
+        pool: &SqlitePool,
+    ) -> Result<()> {
+        if let Some(i) = lists_component.list_state.selected() {
+            let mut list = lists_component.lists[i].list.clone();
+            list.update_name(pool, name).await?;
+            lists_component.load_lists(pool).await?;
+        }
+        Ok(())
     }
 
     /// Render the list of todo lists

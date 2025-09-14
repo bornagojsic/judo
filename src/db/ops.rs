@@ -10,15 +10,23 @@ impl TodoList {
     pub async fn create(pool: &SqlitePool, new_list: NewTodoList) -> Result<TodoList> {
         let now = Utc::now();
 
+        // Get the next ordering value (max + 1)
+        let next_ordering: i64 =
+            sqlx::query_scalar("SELECT COALESCE(MAX(ordering), 0) + 1 FROM todo_lists")
+                .fetch_one(pool)
+                .await
+                .with_context(|| "Failed to get next ordering value")?;
+
         // Use query_as to map results to a struct
         let row = sqlx::query_as::<_, TodoList>(
             r#"
-            INSERT INTO todo_lists (name, created_at, updated_at)
-            VALUES (?1, ?2, ?3)
-            RETURNING id, name, created_at, updated_at
+            INSERT INTO todo_lists (name, ordering, created_at, updated_at)
+            VALUES (?1, ?2, ?3, ?4)
+            RETURNING id, name, ordering, created_at, updated_at
             "#,
         )
         .bind(&new_list.name)
+        .bind(next_ordering)
         .bind(now)
         .bind(now)
         .fetch_one(pool)
@@ -31,7 +39,7 @@ impl TodoList {
     /// Get all todo lists
     pub async fn get_all(pool: &SqlitePool) -> Result<Vec<TodoList>> {
         let lists = sqlx::query_as::<_, TodoList>(
-            "SELECT id, name, created_at, updated_at FROM todo_lists ORDER BY created_at",
+            "SELECT id, name, ordering, created_at, updated_at FROM todo_lists ORDER BY ordering",
         )
         .fetch_all(pool)
         .await
@@ -43,7 +51,7 @@ impl TodoList {
     /// Get a specific todo list by ID
     pub async fn get_by_id(pool: &SqlitePool, id: i64) -> Result<Option<TodoList>> {
         let list = sqlx::query_as::<_, TodoList>(
-            "SELECT id, name, created_at, updated_at FROM todo_lists WHERE id = ?1",
+            "SELECT id, name, ordering, created_at, updated_at FROM todo_lists WHERE id = ?1",
         )
         .bind(id)
         .fetch_optional(pool)
@@ -80,6 +88,72 @@ impl TodoList {
 
         Ok(())
     }
+
+    /// Move list up (decrease ordering, swap with previous)
+    pub async fn move_up(&mut self, pool: &SqlitePool) -> Result<()> {
+        // Find the list with the next lower ordering value
+        let prev_list: Option<(i64, i64)> = sqlx::query_as(
+            "SELECT id, ordering FROM todo_lists WHERE ordering < ?1 ORDER BY ordering DESC LIMIT 1"
+        )
+        .bind(self.ordering)
+        .fetch_optional(pool)
+        .await
+        .with_context(|| "Failed to find previous list")?;
+
+        if let Some((prev_id, prev_ordering)) = prev_list {
+            // Swap orderings
+            sqlx::query("UPDATE todo_lists SET ordering = ?1 WHERE id = ?2")
+                .bind(self.ordering)
+                .bind(prev_id)
+                .execute(pool)
+                .await
+                .with_context(|| "Failed to update previous list ordering")?;
+
+            sqlx::query("UPDATE todo_lists SET ordering = ?1 WHERE id = ?2")
+                .bind(prev_ordering)
+                .bind(self.id)
+                .execute(pool)
+                .await
+                .with_context(|| "Failed to update current list ordering")?;
+
+            self.ordering = prev_ordering;
+        }
+
+        Ok(())
+    }
+
+    /// Move list down (increase ordering, swap with next)
+    pub async fn move_down(&mut self, pool: &SqlitePool) -> Result<()> {
+        // Find the list with the next higher ordering value
+        let next_list: Option<(i64, i64)> = sqlx::query_as(
+            "SELECT id, ordering FROM todo_lists WHERE ordering > ?1 ORDER BY ordering ASC LIMIT 1",
+        )
+        .bind(self.ordering)
+        .fetch_optional(pool)
+        .await
+        .with_context(|| "Failed to find next list")?;
+
+        if let Some((next_id, next_ordering)) = next_list {
+            // Swap orderings
+            sqlx::query("UPDATE todo_lists SET ordering = ?1 WHERE id = ?2")
+                .bind(self.ordering)
+                .bind(next_id)
+                .execute(pool)
+                .await
+                .with_context(|| "Failed to update next list ordering")?;
+
+            sqlx::query("UPDATE todo_lists SET ordering = ?1 WHERE id = ?2")
+                .bind(next_ordering)
+                .bind(self.id)
+                .execute(pool)
+                .await
+                .with_context(|| "Failed to update current list ordering")?;
+
+            self.ordering = next_ordering;
+        }
+
+        Ok(())
+    }
 }
 
 impl TodoItem {
@@ -87,17 +161,27 @@ impl TodoItem {
     pub async fn create(pool: &SqlitePool, new_item: NewTodoItem) -> Result<TodoItem> {
         let now = Utc::now();
 
+        // Get the next ordering value for this list (max + 1)
+        let next_ordering: i64 = sqlx::query_scalar(
+            "SELECT COALESCE(MAX(ordering), 0) + 1 FROM todo_items WHERE list_id = ?1",
+        )
+        .bind(new_item.list_id)
+        .fetch_one(pool)
+        .await
+        .with_context(|| "Failed to get next ordering value")?;
+
         let row = sqlx::query_as::<_, TodoItem>(
             r#"
-            INSERT INTO todo_items (list_id, name, is_done, priority, due_date, created_at, updated_at)
-            VALUES (?1, ?2, FALSE, ?3, ?4, ?5, ?6)
-            RETURNING id, list_id, name, is_done, priority, due_date, created_at, updated_at
+            INSERT INTO todo_items (list_id, name, is_done, priority, due_date, ordering, created_at, updated_at)
+            VALUES (?1, ?2, FALSE, ?3, ?4, ?5, ?6, ?7)
+            RETURNING id, list_id, name, is_done, priority, due_date, ordering, created_at, updated_at
             "#,
         )
         .bind(new_item.list_id)
         .bind(&new_item.name)
         .bind(&new_item.priority)
         .bind(new_item.due_date)
+        .bind(next_ordering)
         .bind(now)
         .bind(now)
         .fetch_one(pool)
@@ -111,10 +195,10 @@ impl TodoItem {
     pub async fn get_by_list_id(pool: &SqlitePool, list_id: i64) -> Result<Vec<TodoItem>> {
         let items = sqlx::query_as::<_, TodoItem>(
             r#"
-            SELECT id, list_id, name, is_done, priority, due_date, created_at, updated_at
+            SELECT id, list_id, name, is_done, priority, due_date, ordering, created_at, updated_at
             FROM todo_items 
             WHERE list_id = ?1 
-            ORDER BY created_at
+            ORDER BY ordering
             "#,
         )
         .bind(list_id)
@@ -129,7 +213,7 @@ impl TodoItem {
     pub async fn get_by_id(pool: &SqlitePool, id: i64) -> Result<Option<TodoItem>> {
         let item = sqlx::query_as::<_, TodoItem>(
             r#"
-            SELECT id, list_id, name, is_done, priority, due_date, created_at, updated_at
+            SELECT id, list_id, name, is_done, priority, due_date, ordering, created_at, updated_at
             FROM todo_items 
             WHERE id = ?1 
             "#,
@@ -229,6 +313,74 @@ impl TodoItem {
             .execute(pool)
             .await
             .with_context(|| "Failed to delete todo item")?;
+
+        Ok(())
+    }
+
+    /// Move item up (decrease ordering, swap with previous in same list)
+    pub async fn move_up(&mut self, pool: &SqlitePool) -> Result<()> {
+        // Find the item with the next lower ordering value in the same list
+        let prev_item: Option<(i64, i64)> = sqlx::query_as(
+            "SELECT id, ordering FROM todo_items WHERE list_id = ?1 AND ordering < ?2 ORDER BY ordering DESC LIMIT 1"
+        )
+        .bind(self.list_id)
+        .bind(self.ordering)
+        .fetch_optional(pool)
+        .await
+        .with_context(|| "Failed to find previous item")?;
+
+        if let Some((prev_id, prev_ordering)) = prev_item {
+            // Swap orderings
+            sqlx::query("UPDATE todo_items SET ordering = ?1 WHERE id = ?2")
+                .bind(self.ordering)
+                .bind(prev_id)
+                .execute(pool)
+                .await
+                .with_context(|| "Failed to update previous item ordering")?;
+
+            sqlx::query("UPDATE todo_items SET ordering = ?1 WHERE id = ?2")
+                .bind(prev_ordering)
+                .bind(self.id)
+                .execute(pool)
+                .await
+                .with_context(|| "Failed to update current item ordering")?;
+
+            self.ordering = prev_ordering;
+        }
+
+        Ok(())
+    }
+
+    /// Move item down (increase ordering, swap with next in same list)
+    pub async fn move_down(&mut self, pool: &SqlitePool) -> Result<()> {
+        // Find the item with the next higher ordering value in the same list
+        let next_item: Option<(i64, i64)> = sqlx::query_as(
+            "SELECT id, ordering FROM todo_items WHERE list_id = ?1 AND ordering > ?2 ORDER BY ordering ASC LIMIT 1"
+        )
+        .bind(self.list_id)
+        .bind(self.ordering)
+        .fetch_optional(pool)
+        .await
+        .with_context(|| "Failed to find next item")?;
+
+        if let Some((next_id, next_ordering)) = next_item {
+            // Swap orderings
+            sqlx::query("UPDATE todo_items SET ordering = ?1 WHERE id = ?2")
+                .bind(self.ordering)
+                .bind(next_id)
+                .execute(pool)
+                .await
+                .with_context(|| "Failed to update next item ordering")?;
+
+            sqlx::query("UPDATE todo_items SET ordering = ?1 WHERE id = ?2")
+                .bind(next_ordering)
+                .bind(self.id)
+                .execute(pool)
+                .await
+                .with_context(|| "Failed to update current item ordering")?;
+
+            self.ordering = next_ordering;
+        }
 
         Ok(())
     }

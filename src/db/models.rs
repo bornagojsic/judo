@@ -14,6 +14,7 @@ pub enum Priority {
 pub struct TodoList {
     pub id: i64,
     pub name: String,
+    pub ordering: i64,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -26,6 +27,7 @@ pub struct TodoItem {
     pub is_done: bool,
     pub priority: Option<Priority>,
     pub due_date: Option<DateTime<Utc>>,
+    pub ordering: i64,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }

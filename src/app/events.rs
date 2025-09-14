@@ -90,14 +90,12 @@ impl EventHandler {
                             app.current_screen = CurrentScreen::Main;
                             app.input_state.clear();
                         }
+                    } else if let Err(e) = app.lists_component.create_list(list_name, &app.pool).await
+                    {
+                        eprintln!("Failed to create list: {}", e);
                     } else {
-                        if let Err(e) = app.lists_component.create_list(list_name, &app.pool).await
-                        {
-                            eprintln!("Failed to create list: {}", e);
-                        } else {
-                            app.current_screen = CurrentScreen::Main;
-                            app.input_state.clear();
-                        }
+                        app.current_screen = CurrentScreen::Main;
+                        app.input_state.clear();
                     }
                 }
             }

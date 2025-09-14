@@ -88,6 +88,8 @@ Navigate between lists and items using the keyboard. You can switch between diff
 |-----|--------|
 | `A` | Add new list |
 | `a` | Add new item to selected list |
+| `M` | Modify selected list |
+| `m` | Modify selected item |
 | `D` | Delete selected list |
 | `d` | Delete selected item |
 | `C` | Change/switch database |

@@ -119,7 +119,15 @@ impl ItemsComponent {
                 Style::default().fg(Color::from_str("#FFA69E").unwrap()),
             ),
             Span::styled(
-                "el ",
+                "el",
+                Style::default().fg(Color::from_str("#FCF1D5").unwrap()),
+            ),
+            Span::styled(
+                " [m]",
+                Style::default().fg(Color::from_str("#FFA69E").unwrap()),
+            ),
+            Span::styled(
+                "odify ",
                 Style::default().fg(Color::from_str("#FCF1D5").unwrap()),
             ),
             Span::raw(" "),

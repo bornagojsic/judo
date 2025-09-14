@@ -59,15 +59,6 @@ impl ListsComponent {
         Ok(())
     }
 
-    // /// Update an existing list
-    // pub async fn update_list(&mut self, id: i64, name: String, pool: &SqlitePool) -> Result<()> {
-    //     if let Some(mut list_to_update) = TodoList::get_by_id(pool, id).await? {
-    //         list_to_update.update_name(pool, name).await?;
-    //     }
-    //     self.load_lists(pool).await?;
-    //     Ok(())
-    // }
-
     /// Update an existing list
     pub async fn update_list(&mut self, name: String, pool: &SqlitePool) -> Result<()> {
         if let Some(i) = self.list_state.selected() {
@@ -134,7 +125,15 @@ impl ListsComponent {
                 Style::default().fg(Color::from_str("#FFA69E").unwrap()),
             ),
             Span::styled(
-                "el ",
+                "el",
+                Style::default().fg(Color::from_str("#FCF1D5").unwrap()),
+            ),
+            Span::styled(
+                " [M]",
+                Style::default().fg(Color::from_str("#FFA69E").unwrap()),
+            ),
+            Span::styled(
+                "odify ",
                 Style::default().fg(Color::from_str("#FCF1D5").unwrap()),
             ),
             Span::raw(" "),

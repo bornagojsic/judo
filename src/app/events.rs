@@ -68,23 +68,21 @@ impl EventHandler {
             }
             (KeyCode::Up, KeyModifiers::CONTROL) => {
                 // Ctrl+Up: Move selected item up
-                if let Some(selected_list) = app.lists_component.get_selected_list_mut() {
-                    if let Err(e) =
+                if let Some(selected_list) = app.lists_component.get_selected_list_mut()
+                    && let Err(e) =
                         ItemsComponent::move_selected_item_up(selected_list, &app.pool).await
                     {
                         eprintln!("Failed to move item up: {}", e);
                     }
-                }
             }
             (KeyCode::Down, KeyModifiers::CONTROL) => {
                 // Ctrl+Down: Move selected item down
-                if let Some(selected_list) = app.lists_component.get_selected_list_mut() {
-                    if let Err(e) =
+                if let Some(selected_list) = app.lists_component.get_selected_list_mut()
+                    && let Err(e) =
                         ItemsComponent::move_selected_item_down(selected_list, &app.pool).await
                     {
                         eprintln!("Failed to move item down: {}", e);
                     }
-                }
             }
             (KeyCode::Down, KeyModifiers::NONE) => {
                 if let Some(selected_list) = app.lists_component.get_selected_list_mut() {

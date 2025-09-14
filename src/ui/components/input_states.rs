@@ -8,7 +8,7 @@ pub struct InputState {
     /// Position of cursor
     pub cursor_pos: usize,
     /// ID of object (optional)
-    pub id: Option<i64>
+    pub id: Option<i64>,
 }
 
 impl Default for InputState {

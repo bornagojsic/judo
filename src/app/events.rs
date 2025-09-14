@@ -12,14 +12,19 @@ impl EventHandler {
             KeyCode::Char('q') => app.exit = true, // Quit application
             KeyCode::Char('s') => app.lists_component.select_next(), // Navigate down in lists
             KeyCode::Char('w') => app.lists_component.select_previous(), // Navigate up in lists
-            KeyCode::Char('A') => app.enter_add_or_modify_list_screen(None), // Add new list
+            KeyCode::Char('A') => app.enter_add_list_screen(), // Add new list
             KeyCode::Char('a') => app.enter_add_item_screen(), // Add new item
             KeyCode::Char('C') => app.enter_change_db_screen(), // Change database
             KeyCode::Char('M') => {
                 if let Some(selected_list) = app.lists_component.get_selected_list() {
-                    app.enter_add_or_modify_list_screen(Some(&selected_list.list.clone()))
+                    app.enter_modify_list_screen(&selected_list.list.clone())
                 }
             } // Modify existing list
+            KeyCode::Char('m') => {
+                if let Some(selected_list) = app.lists_component.get_selected_list() {
+                    app.enter_modify_item_screen(&selected_list.clone())
+                }
+            } // Modify existing item
             KeyCode::Char('D') => {
                 if let Err(e) = app.lists_component.delete_selected_list(&app.pool).await {
                     // Log error but don't crash the application
@@ -90,7 +95,8 @@ impl EventHandler {
                             app.current_screen = CurrentScreen::Main;
                             app.input_state.clear();
                         }
-                    } else if let Err(e) = app.lists_component.create_list(list_name, &app.pool).await
+                    } else if let Err(e) =
+                        app.lists_component.create_list(list_name, &app.pool).await
                     {
                         eprintln!("Failed to create list: {}", e);
                     } else {
@@ -104,7 +110,7 @@ impl EventHandler {
     }
 
     /// Handle key press from user in add item screen
-    pub async fn handle_add_item_screen_key(app: &mut App, key: KeyEvent) {
+    pub async fn handle_add_or_modify_item_screen_key(app: &mut App, key: KeyEvent) {
         match key.code {
             KeyCode::Esc => app.exit_add_item_without_saving(),
             KeyCode::Backspace => app.input_state.remove_char_before_cursor(),
@@ -117,10 +123,19 @@ impl EventHandler {
                 if !item_name.trim().is_empty()
                     && let Some(selected_list) = app.lists_component.get_selected_list_mut()
                 {
-                    if let Err(e) =
+                    if let Some(id) = app.input_state.id {
+                        if let Err(e) =
+                            ItemsComponent::update_item(selected_list, item_name, &app.pool).await
+                        {
+                            eprintln!("Failed to update list: {}", e);
+                        } else {
+                            app.current_screen = CurrentScreen::Main;
+                            app.input_state.clear();
+                        }
+                    } else if let Err(e) =
                         ItemsComponent::create_item(selected_list, item_name, &app.pool).await
                     {
-                        eprintln!("Failed to create item: {}", e);
+                        eprintln!("Failed to create list: {}", e);
                     } else {
                         app.current_screen = CurrentScreen::Main;
                         app.input_state.clear();

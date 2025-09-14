@@ -69,6 +69,18 @@ impl ItemsComponent {
         Ok(())
     }
 
+    /// Update an existing item
+    pub async fn update_item(ui_list: &mut UIList, name: String, pool: &SqlitePool) -> Result<()> {
+        if let Some(j) = ui_list.item_state.selected() {
+            let mut item = ui_list.items[j].item.clone();
+            item.update_name(pool, name).await?;
+
+            // Update list elements
+            ui_list.update_items(pool).await?;
+        }
+        Ok(())
+    }
+
     /// Delete the currently selected item
     pub async fn delete_selected_item(ui_list: &mut UIList, pool: &SqlitePool) -> Result<()> {
         if let Some(j) = ui_list.item_state.selected() {

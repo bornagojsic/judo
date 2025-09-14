@@ -64,7 +64,6 @@ impl ListsComponent {
         if let Some(mut list_to_update) = TodoList::get_by_id(pool, id).await? {
             list_to_update.update_name(pool, name).await?;
         }
-        //TodoList::create(pool, new_list).await?;
         self.load_lists(pool).await?;
         Ok(())
     }

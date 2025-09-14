@@ -1,10 +1,10 @@
 use crate::app::events::EventHandler;
 use crate::db::config::{Config, DBConfig};
 use crate::db::connections::init_db;
-use crate::db::models::TodoList;
+use crate::db::models::{TodoList, UIList};
 use crate::ui::components::{
     AddDBPopUp, AddItemPopUp, AddListPopUp, ChangeDBPopUp, DBSelector, InputState, ItemsComponent,
-    ListsComponent, Logo, ModifyListPopUp,
+    ListsComponent, Logo, ModifyItemPopUp, ModifyListPopUp,
 };
 use crate::ui::cursor::CursorState;
 use crate::ui::layout::AppLayout;
@@ -27,6 +27,8 @@ pub enum CurrentScreen {
     ModifyList,
     /// Pop-up screen for adding a new item
     AddItem,
+    /// Pop-up screen for adding a new item
+    ModifyItem,
     /// Pop-up for changing database
     ChangeDB,
     /// Pop-up for adding a new database
@@ -173,31 +175,54 @@ impl App {
             CurrentScreen::AddList | CurrentScreen::ModifyList => {
                 EventHandler::handle_add_or_modify_list_screen_key(self, key).await
             }
-            CurrentScreen::AddItem => EventHandler::handle_add_item_screen_key(self, key).await,
+            CurrentScreen::AddItem => {
+                EventHandler::handle_add_or_modify_item_screen_key(self, key).await
+            }
+            CurrentScreen::ModifyItem => {
+                EventHandler::handle_add_or_modify_item_screen_key(self, key).await
+            }
             CurrentScreen::ChangeDB => EventHandler::handle_change_db_screen_key(self, key).await,
             CurrentScreen::AddDB => EventHandler::handle_add_db_screen_key(self, key).await,
         }
     }
 
     /// Enter the "Add List" screen by opening the corresponding pop-up
-    pub fn enter_add_or_modify_list_screen(&mut self, selected_list: Option<&TodoList>) {
-        if let Some(list) = selected_list {
-            self.input_state = InputState {
-                current_input: list.name.clone(),
-                cursor_pos: 0,
-                id: Some(list.id),
-            };
-            self.current_screen = CurrentScreen::ModifyList;
-        } else {
-            self.input_state = InputState::default();
-            self.current_screen = CurrentScreen::AddList;
-        }
+    pub fn enter_add_list_screen(&mut self) {
+        self.input_state = InputState::default();
+        self.current_screen = CurrentScreen::AddList;
+    }
+
+    /// Enter the "Modify List" screen by opening the corresponding pop-up
+    pub fn enter_modify_list_screen(&mut self, selected_list: &TodoList) {
+        self.input_state = InputState {
+            current_input: selected_list.name.clone(),
+            cursor_pos: 0,
+            id: Some(selected_list.id),
+        };
+        self.current_screen = CurrentScreen::ModifyList;
     }
 
     /// Enter the "Add Item" screen by opening the corresponding pop-up
     pub fn enter_add_item_screen(&mut self) {
         if self.lists_component.selected().is_some() {
+            self.input_state = InputState::default();
             self.current_screen = CurrentScreen::AddItem;
+        }
+    }
+
+    /// Enter the "Modify Item" screen by opening the corresponding pop-up
+    pub fn enter_modify_item_screen(&mut self, ui_list: &UIList) {
+        if self.lists_component.selected().is_some() {
+            if let Some(j) = ui_list.item_state.selected() {
+                let selected_item = ui_list.items[j].item.clone();
+
+                self.input_state = InputState {
+                    current_input: selected_item.name.clone(),
+                    cursor_pos: 0,
+                    id: Some(selected_item.id),
+                };
+                self.current_screen = CurrentScreen::ModifyItem;
+            }
         }
     }
 
@@ -340,6 +365,9 @@ impl Widget for &mut App {
                 ModifyListPopUp::render(&self.input_state, lists_area, buf)
             }
             CurrentScreen::AddItem => AddItemPopUp::render(&self.input_state, items_area, buf),
+            CurrentScreen::ModifyItem => {
+                ModifyItemPopUp::render(&self.input_state, items_area, buf)
+            }
             CurrentScreen::ChangeDB => {
                 ChangeDBPopUp::render(&self.config, self.selected_db_index, db_selector_area, buf)
             }

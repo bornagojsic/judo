@@ -84,11 +84,8 @@ impl EventHandler {
                 // Only do something if the list has a name
                 if !list_name.trim().is_empty() {
                     // If there's an ID, it means we update
-                    if let Some(id) = app.input_state.id {
-                        if let Err(e) = app
-                            .lists_component
-                            .update_list(id, list_name, &app.pool)
-                            .await
+                    if app.input_state.is_modifying {
+                        if let Err(e) = app.lists_component.update_list(list_name, &app.pool).await
                         {
                             eprintln!("Failed to update list: {}", e);
                         } else {
@@ -123,11 +120,11 @@ impl EventHandler {
                 if !item_name.trim().is_empty()
                     && let Some(selected_list) = app.lists_component.get_selected_list_mut()
                 {
-                    if let Some(id) = app.input_state.id {
+                    if app.input_state.is_modifying {
                         if let Err(e) =
                             ItemsComponent::update_item(selected_list, item_name, &app.pool).await
                         {
-                            eprintln!("Failed to update list: {}", e);
+                            eprintln!("Failed to update item: {}", e);
                         } else {
                             app.current_screen = CurrentScreen::Main;
                             app.input_state.clear();
@@ -135,7 +132,7 @@ impl EventHandler {
                     } else if let Err(e) =
                         ItemsComponent::create_item(selected_list, item_name, &app.pool).await
                     {
-                        eprintln!("Failed to create list: {}", e);
+                        eprintln!("Failed to create item: {}", e);
                     } else {
                         app.current_screen = CurrentScreen::Main;
                         app.input_state.clear();

@@ -7,8 +7,8 @@ pub struct InputState {
     pub current_input: String,
     /// Position of cursor
     pub cursor_pos: usize,
-    /// ID of object (optional)
-    pub id: Option<i64>,
+    /// Flag where true indicates item is being modified and not created from scratched
+    pub is_modifying: bool,
 }
 
 impl Default for InputState {
@@ -22,7 +22,7 @@ impl InputState {
         Self {
             current_input: String::new(),
             cursor_pos: 0,
-            id: None,
+            is_modifying: false,
         }
     }
 }

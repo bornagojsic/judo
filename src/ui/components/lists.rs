@@ -59,12 +59,22 @@ impl ListsComponent {
         Ok(())
     }
 
+    // /// Update an existing list
+    // pub async fn update_list(&mut self, id: i64, name: String, pool: &SqlitePool) -> Result<()> {
+    //     if let Some(mut list_to_update) = TodoList::get_by_id(pool, id).await? {
+    //         list_to_update.update_name(pool, name).await?;
+    //     }
+    //     self.load_lists(pool).await?;
+    //     Ok(())
+    // }
+
     /// Update an existing list
-    pub async fn update_list(&mut self, id: i64, name: String, pool: &SqlitePool) -> Result<()> {
-        if let Some(mut list_to_update) = TodoList::get_by_id(pool, id).await? {
-            list_to_update.update_name(pool, name).await?;
+    pub async fn update_list(&mut self, name: String, pool: &SqlitePool) -> Result<()> {
+        if let Some(i) = self.list_state.selected() {
+            let mut list = self.lists[i].list.clone();
+            list.update_name(pool, name).await?;
+            self.load_lists(pool).await?;
         }
-        self.load_lists(pool).await?;
         Ok(())
     }
 

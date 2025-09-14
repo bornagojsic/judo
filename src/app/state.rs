@@ -197,7 +197,7 @@ impl App {
         self.input_state = InputState {
             current_input: selected_list.name.clone(),
             cursor_pos: 0,
-            id: Some(selected_list.id),
+            is_modifying: true,
         };
         self.current_screen = CurrentScreen::ModifyList;
     }
@@ -213,16 +213,17 @@ impl App {
     /// Enter the "Modify Item" screen by opening the corresponding pop-up
     pub fn enter_modify_item_screen(&mut self, ui_list: &UIList) {
         if self.lists_component.selected().is_some()
-            && let Some(j) = ui_list.item_state.selected() {
-                let selected_item = ui_list.items[j].item.clone();
+            && let Some(j) = ui_list.item_state.selected()
+        {
+            let selected_item = ui_list.items[j].item.clone();
 
-                self.input_state = InputState {
-                    current_input: selected_item.name.clone(),
-                    cursor_pos: 0,
-                    id: Some(selected_item.id),
-                };
-                self.current_screen = CurrentScreen::ModifyItem;
-            }
+            self.input_state = InputState {
+                current_input: selected_item.name.clone(),
+                cursor_pos: 0,
+                is_modifying: true,
+            };
+            self.current_screen = CurrentScreen::ModifyItem;
+        }
     }
 
     /// Exit the Add List screen without saving

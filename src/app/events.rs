@@ -83,7 +83,6 @@ impl EventHandler {
                 let list_name = app.input_state.get_text().to_string();
                 // Only do something if the list has a name
                 if !list_name.trim().is_empty() {
-                    // If there's an ID, it means we update
                     if app.input_state.is_modifying {
                         if let Err(e) = app.lists_component.update_list(list_name, &app.pool).await
                         {

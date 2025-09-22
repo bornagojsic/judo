@@ -200,12 +200,8 @@ impl ChangeDBPopUp {
                 Style::default().fg(Color::from_str("#FCF1D5").unwrap()),
             ),
             Span::styled(
-                " [E]",
+                " [Esc]",
                 Style::default().fg(Color::from_str("#FFA69E").unwrap()),
-            ),
-            Span::styled(
-                "sc",
-                Style::default().fg(Color::from_str("#FCF1D5").unwrap()),
             ),
             Span::raw(" "),
         ]);
@@ -264,12 +260,8 @@ impl AddDBPopUp {
         let add_db_command_hints = Line::from(vec![
             Span::raw(" "),
             Span::styled(
-                "[E]",
+                "[Esc]",
                 Style::default().fg(Color::from_str("#FFA69E").unwrap()),
-            ),
-            Span::styled(
-                "sc",
-                Style::default().fg(Color::from_str("#FCF1D5").unwrap()),
             ),
             Span::raw(" "),
         ]);

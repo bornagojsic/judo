@@ -26,7 +26,7 @@ A terminal-based todo list application.
 - [Data Storage](#data-storage)
 
 ## What Judo Looks Like
-![](https://github.com/giacomopiccinini/judo/blob/main/assets/judo.png)
+![](https://github.com/giacomopiccinini/judo/blob/main/assets/demo.gif)
 
 ## What It Does
 

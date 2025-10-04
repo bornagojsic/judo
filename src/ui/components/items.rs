@@ -167,10 +167,26 @@ impl ItemsComponent {
         ])
         .left_aligned();
 
+        // Add "quit" hint, in the bottom right corner
+        let quit_hint = Line::from(vec![
+            Span::raw(" "),
+            Span::styled(
+                "[q]",
+                Style::default().fg(Color::from_str("#FFA69E").unwrap()),
+            ),
+            Span::styled(
+                "uit ",
+                Style::default().fg(Color::from_str("#FCF1D5").unwrap()),
+            ),
+            Span::raw(" "),
+        ])
+        .right_aligned();
+
         let block = Block::default()
             .padding(Padding::new(2, 2, 1, 1))
             .title_top(Line::raw("  I T E M S  ").left_aligned())
             .title_bottom(list_command_hints)
+            .title_bottom(quit_hint)
             .title_alignment(Alignment::Center)
             .borders(Borders::ALL)
             .border_type(BorderType::Rounded);

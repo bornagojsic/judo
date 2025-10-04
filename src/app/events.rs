@@ -9,23 +9,23 @@ impl EventHandler {
     /// Handle key press from user in main screen
     pub async fn handle_main_screen_key(app: &mut App, key: KeyEvent) {
         match (key.code, key.modifiers) {
-            (KeyCode::Char('q'), _) => app.exit = true, // Quit application
+            (KeyCode::Char('q'), KeyModifiers::NONE) => app.exit = true, // Quit application
             (KeyCode::Char('s'), KeyModifiers::NONE) => app.lists_component.select_next(), // Navigate down in lists
             (KeyCode::Char('w'), KeyModifiers::NONE) => app.lists_component.select_previous(), // Navigate up in lists
-            (KeyCode::Char('A'), _) => app.enter_add_list_screen(), // Add new list
-            (KeyCode::Char('a'), _) => app.enter_add_item_screen(), // Add new item
-            (KeyCode::Char('C'), _) => app.enter_change_db_screen(), // Change database
-            (KeyCode::Char('M'), _) => {
+            (KeyCode::Char('A'), KeyModifiers::SHIFT) => app.enter_add_list_screen(), // Add new list
+            (KeyCode::Char('a'), KeyModifiers::NONE) => app.enter_add_item_screen(), // Add new item
+            (KeyCode::Char('C'), KeyModifiers::SHIFT) => app.enter_change_db_screen(), // Change database
+            (KeyCode::Char('M'), KeyModifiers::SHIFT) => {
                 if let Some(selected_list) = app.lists_component.get_selected_list() {
                     app.enter_modify_list_screen(&selected_list.list.clone())
                 }
             } // Modify existing list
-            (KeyCode::Char('m'), _) => {
+            (KeyCode::Char('m'), KeyModifiers::NONE) => {
                 if let Some(selected_list) = app.lists_component.get_selected_list() {
                     app.enter_modify_item_screen(&selected_list.clone())
                 }
             } // Modify existing item
-            (KeyCode::Char('D'), _) => {
+            (KeyCode::Char('D'), KeyModifiers::SHIFT) => {
                 if let Err(e) =
                     ListsComponent::delete_selected_list_static(&mut app.lists_component, &app.pool)
                         .await
@@ -34,7 +34,7 @@ impl EventHandler {
                     eprintln!("Failed to delete list: {}", e);
                 }
             }
-            (KeyCode::Char('d'), _) => {
+            (KeyCode::Char('d'), KeyModifiers::NONE) => {
                 if let Some(selected_list) = app.lists_component.get_selected_list_mut()
                     && let Err(e) =
                         ItemsComponent::delete_selected_item(selected_list, &app.pool).await
@@ -42,7 +42,7 @@ impl EventHandler {
                     eprintln!("Failed to delete item: {}", e);
                 }
             }
-            (KeyCode::Enter, _) => {
+            (KeyCode::Enter, KeyModifiers::NONE) => {
                 if let Some(selected_list) = app.lists_component.get_selected_list_mut()
                     && let Err(e) = ItemsComponent::toggle_item_done(selected_list, &app.pool).await
                 {
@@ -94,12 +94,12 @@ impl EventHandler {
                     ItemsComponent::select_previous_item(selected_list);
                 }
             }
-            (KeyCode::Left, _) => {
+            (KeyCode::Left, KeyModifiers::NONE) => {
                 if let Some(selected_list) = app.lists_component.get_selected_list_mut() {
                     ItemsComponent::remove_item_selection(selected_list);
                 }
             }
-            (KeyCode::Right, _) => {
+            (KeyCode::Right, KeyModifiers::NONE) => {
                 if let Some(selected_list) = app.lists_component.get_selected_list_mut() {
                     ItemsComponent::select_first_item(selected_list);
                 }

@@ -5,7 +5,7 @@ use ratatui::layout::Rect;
 use ratatui::style::{Color, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{
-    Block, BorderType, Borders, List, ListItem, Padding, Paragraph, Widget, Wrap,
+    Block, BorderType, Borders, Clear, List, ListItem, Padding, Paragraph, Widget, Wrap,
 };
 use std::str::FromStr;
 
@@ -51,6 +51,7 @@ fn render_list_popup_kernel<T: CursorState>(
     };
 
     // Clear the background of the popup area first
+    Clear.render(popup_area, buf);
     Block::default()
         .style(Style::default().bg(Color::from_str("#002626").unwrap()))
         .render(popup_area, buf);
@@ -134,6 +135,7 @@ pub fn render_item_popup_kernel<T: CursorState>(
     };
 
     // Clear the background of the popup area first
+    Clear.render(popup_area, buf);
     Block::default()
         .style(Style::default().bg(Color::from_str("#002626").unwrap()))
         .render(popup_area, buf);
@@ -267,6 +269,7 @@ impl AddDBPopUp {
         ]);
 
         // Clear the entire area background first
+        Clear.render(area, buf);
         Block::default()
             .style(
                 Style::default()

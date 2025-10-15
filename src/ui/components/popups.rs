@@ -3,7 +3,6 @@ use crate::ui::cursor::CursorState;
 use crate::ui::theme::Theme;
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
-use ratatui::style::Style;
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{
     Block, BorderType, Borders, Clear, List, ListItem, Padding, Paragraph, Widget, Wrap,
@@ -178,15 +177,15 @@ impl ChangeDBPopUp {
         // Command hints for change db popup
         let change_db_command_hints = Line::from(vec![
             Span::raw(" "),
-            Span::styled(" ↑↓ ", Style::default()),
+            Span::styled(" ↑↓ ", Theme::fg(&theme.foreground)),
             Span::styled("[A]", Theme::fg(&theme.accent)),
-            Span::styled("dd", Theme::fg(&theme.border)),
+            Span::styled("dd", Theme::fg(&theme.foreground)),
             Span::styled(" [S]", Theme::fg(&theme.accent)),
-            Span::styled("et Default", Theme::fg(&theme.border)),
+            Span::styled("et Default", Theme::fg(&theme.foreground)),
             Span::styled(" [D]", Theme::fg(&theme.accent)),
-            Span::styled("el", Theme::fg(&theme.border)),
+            Span::styled("el", Theme::fg(&theme.foreground)),
             Span::styled(" [M]", Theme::fg(&theme.accent)),
-            Span::styled("odify", Theme::fg(&theme.border)),
+            Span::styled("odify", Theme::fg(&theme.foreground)),
             Span::styled(" [Esc]", Theme::fg(&theme.accent)),
             Span::raw(" "),
         ]);

@@ -3,7 +3,6 @@ use crate::ui::theme::Theme;
 use anyhow::Result;
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Alignment, Rect};
-use ratatui::style::Style;
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{
     Block, BorderType, Borders, HighlightSpacing, List, ListItem, ListState, Padding,
@@ -181,13 +180,13 @@ impl ListsComponent {
         // Command hints for lists
         let list_command_hints = Line::from(vec![
             Span::raw(" "),
-            Span::styled(" w,s ", Style::default()),
+            Span::styled(" w,s ", Theme::fg(&theme.foreground)),
             Span::styled("[A]", Theme::fg(&theme.accent)),
-            Span::styled("dd", Theme::fg(&theme.border)),
+            Span::styled("dd", Theme::fg(&theme.foreground)),
             Span::styled(" [D]", Theme::fg(&theme.accent)),
-            Span::styled("el", Theme::fg(&theme.border)),
+            Span::styled("el", Theme::fg(&theme.foreground)),
             Span::styled(" [M]", Theme::fg(&theme.accent)),
-            Span::styled("odify ", Theme::fg(&theme.border)),
+            Span::styled("odify ", Theme::fg(&theme.foreground)),
             Span::raw(" "),
         ])
         .left_aligned();

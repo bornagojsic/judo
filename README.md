@@ -107,6 +107,8 @@ Navigate between lists and items using the keyboard. You can switch between diff
 | `↓` | Move down in database list |
 | `Enter` | Switch to selected database |
 | `A` | Add new database |
+| `M` | Modify database |
+| `D` | Delete selected database |
 | `S` | Set selected database as default |
 | `Esc` | Return to main screen |
 

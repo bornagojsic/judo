@@ -1,3 +1,4 @@
+use crate::ui::theme::Theme;
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 use std::fs;
@@ -12,6 +13,7 @@ const DEFAULT_DB_FILE: &str = "judo.db";
 pub struct Config {
     pub default: String,
     pub dbs: Vec<DBConfig>,
+    pub theme: Option<Theme>,
 }
 
 /// Database configuration
@@ -48,6 +50,7 @@ impl Default for Config {
         Self {
             default: DEFAULT_DB_NAME.to_string(),
             dbs: vec![DBConfig::default()],
+            theme: Some(Theme::default()),
         }
     }
 }

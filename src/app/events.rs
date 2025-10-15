@@ -192,6 +192,8 @@ impl EventHandler {
             KeyCode::Esc => app.exit_change_db_without_saving(),
             KeyCode::Up => app.select_previous_db(),
             KeyCode::Down => app.select_next_db(),
+            KeyCode::Char('k') => app.select_previous_db(),
+            KeyCode::Char('j') => app.select_next_db(),
             KeyCode::Enter => {
                 if let Err(e) = app.switch_to_selected_db().await {
                     eprintln!("Failed to switch database: {}", e);
@@ -202,6 +204,13 @@ impl EventHandler {
                 // Set selected database as default
                 if let Err(e) = app.set_selected_db_as_default().await {
                     eprintln!("Failed to set database as default: {}", e);
+                }
+            }
+            KeyCode::Char('M') => app.enter_modify_db_screen(),
+            KeyCode::Char('D') => {
+                // Delete selected database
+                if let Err(e) = app.delete_selected_db().await {
+                    eprintln!("Failed to delete database: {}", e);
                 }
             }
             _ => {}
@@ -228,6 +237,29 @@ impl EventHandler {
                     }
                 }
             }
+            _ => {}
+        }
+    }
+
+    pub async fn handle_modify_db_screen_key(app: &mut App, key: KeyEvent) {
+        match key.code {
+            KeyCode::Enter => {
+                let new_name = app.input_state.get_text().to_string();
+                if !new_name.trim().is_empty() {
+                    if let Err(e) = app.modify_selected_db(Some(new_name), None).await {
+                        eprintln!("Failed to modify database: {}", e);
+                    }
+                }
+                app.exit_modify_db_without_saving();
+            }
+            KeyCode::Esc => {
+                app.exit_modify_db_without_saving();
+            }
+            KeyCode::Backspace => app.input_state.remove_char_before_cursor(),
+            KeyCode::Delete => app.input_state.delete_char_after_cursor(),
+            KeyCode::Char(value) => app.input_state.add_char(value),
+            KeyCode::Left => app.input_state.move_cursor_left(),
+            KeyCode::Right => app.input_state.move_cursor_right(),
             _ => {}
         }
     }

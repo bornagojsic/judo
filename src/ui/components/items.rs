@@ -1,14 +1,14 @@
 use crate::db::models::{NewTodoItem, TodoItem, UIItem, UIList};
+use crate::ui::theme::Theme;
 use anyhow::Result;
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Alignment, Rect};
-use ratatui::style::{Color, Modifier, Style};
+use ratatui::style::{Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{
     Block, BorderType, Borders, HighlightSpacing, List, ListItem, Padding, StatefulWidget, Widget,
 };
 use sqlx::SqlitePool;
-use std::str::FromStr;
 pub struct ItemsComponent;
 
 impl ItemsComponent {
@@ -134,35 +134,17 @@ impl ItemsComponent {
     }
 
     /// Render the list of todo items for the selected list
-    pub fn render(selected_list: Option<&mut UIList>, area: Rect, buf: &mut Buffer) {
+    pub fn render(selected_list: Option<&mut UIList>, area: Rect, buf: &mut Buffer, theme: &Theme) {
         // Command hints for items
         let list_command_hints = Line::from(vec![
             Span::raw(" "),
             Span::styled(" ↓↑ ", Style::default()),
-            Span::styled(
-                "[a]",
-                Style::default().fg(Color::from_str("#FFA69E").unwrap()),
-            ),
-            Span::styled(
-                "dd",
-                Style::default().fg(Color::from_str("#FCF1D5").unwrap()),
-            ),
-            Span::styled(
-                " [d]",
-                Style::default().fg(Color::from_str("#FFA69E").unwrap()),
-            ),
-            Span::styled(
-                "el",
-                Style::default().fg(Color::from_str("#FCF1D5").unwrap()),
-            ),
-            Span::styled(
-                " [m]",
-                Style::default().fg(Color::from_str("#FFA69E").unwrap()),
-            ),
-            Span::styled(
-                "odify ",
-                Style::default().fg(Color::from_str("#FCF1D5").unwrap()),
-            ),
+            Span::styled("[a]", Theme::fg(&theme.accent)),
+            Span::styled("dd", Theme::fg(&theme.foreground)),
+            Span::styled(" [d]", Theme::fg(&theme.accent)),
+            Span::styled("el", Theme::fg(&theme.foreground)),
+            Span::styled(" [m]", Theme::fg(&theme.accent)),
+            Span::styled("odify ", Theme::fg(&theme.foreground)),
             Span::raw(" "),
         ])
         .left_aligned();
@@ -170,14 +152,8 @@ impl ItemsComponent {
         // Add "quit" hint, in the bottom right corner
         let quit_hint = Line::from(vec![
             Span::raw(" "),
-            Span::styled(
-                "[q]",
-                Style::default().fg(Color::from_str("#FFA69E").unwrap()),
-            ),
-            Span::styled(
-                "uit ",
-                Style::default().fg(Color::from_str("#FCF1D5").unwrap()),
-            ),
+            Span::styled("[q]", Theme::fg(&theme.accent)),
+            Span::styled("uit ", Theme::fg(&theme.foreground)),
             Span::raw(" "),
         ])
         .right_aligned();
@@ -204,9 +180,7 @@ impl ItemsComponent {
                 .highlight_symbol(" ▸ ")
                 .highlight_style(
                     // Swap foreground and background for selected item
-                    Style::default()
-                        .bg(Color::from_str("#FCF1D5").unwrap())
-                        .fg(Color::from_str("#002626").unwrap()),
+                    Theme::fg_bg(&theme.background, &theme.foreground),
                 )
                 .highlight_spacing(HighlightSpacing::Always);
 

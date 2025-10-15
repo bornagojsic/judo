@@ -1,15 +1,15 @@
 use crate::db::models::{NewTodoList, TodoList, UIList};
+use crate::ui::theme::Theme;
 use anyhow::Result;
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Alignment, Rect};
-use ratatui::style::{Color, Style};
+use ratatui::style::Style;
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{
     Block, BorderType, Borders, HighlightSpacing, List, ListItem, ListState, Padding,
     StatefulWidget,
 };
 use sqlx::SqlitePool;
-use std::str::FromStr;
 
 pub struct ListsComponent {
     pub lists: Vec<UIList>,
@@ -177,35 +177,17 @@ impl ListsComponent {
     }
 
     /// Render the list of todo lists
-    pub fn render(&mut self, area: Rect, buf: &mut Buffer) {
+    pub fn render(&mut self, area: Rect, buf: &mut Buffer, theme: &Theme) {
         // Command hints for lists
         let list_command_hints = Line::from(vec![
             Span::raw(" "),
             Span::styled(" w,s ", Style::default()),
-            Span::styled(
-                "[A]",
-                Style::default().fg(Color::from_str("#FFA69E").unwrap()),
-            ),
-            Span::styled(
-                "dd",
-                Style::default().fg(Color::from_str("#FCF1D5").unwrap()),
-            ),
-            Span::styled(
-                " [D]",
-                Style::default().fg(Color::from_str("#FFA69E").unwrap()),
-            ),
-            Span::styled(
-                "el",
-                Style::default().fg(Color::from_str("#FCF1D5").unwrap()),
-            ),
-            Span::styled(
-                " [M]",
-                Style::default().fg(Color::from_str("#FFA69E").unwrap()),
-            ),
-            Span::styled(
-                "odify ",
-                Style::default().fg(Color::from_str("#FCF1D5").unwrap()),
-            ),
+            Span::styled("[A]", Theme::fg(&theme.accent)),
+            Span::styled("dd", Theme::fg(&theme.border)),
+            Span::styled(" [D]", Theme::fg(&theme.accent)),
+            Span::styled("el", Theme::fg(&theme.border)),
+            Span::styled(" [M]", Theme::fg(&theme.accent)),
+            Span::styled("odify ", Theme::fg(&theme.border)),
             Span::raw(" "),
         ])
         .left_aligned();
@@ -230,9 +212,7 @@ impl ListsComponent {
             .highlight_symbol(" ▸ ") // Selection indicator
             .highlight_style(
                 // Swap foreground and background for selected item
-                Style::default()
-                    .bg(Color::from_str("#FCF1D5").unwrap())
-                    .fg(Color::from_str("#002626").unwrap()),
+                Theme::fg_bg(&theme.highlight_fg, &theme.highlight_bg),
             )
             .highlight_spacing(HighlightSpacing::Always);
 

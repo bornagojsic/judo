@@ -1,8 +1,8 @@
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Constraint, Layout, Margin, Rect};
-use ratatui::style::{Color, Style};
 use ratatui::widgets::{Block, Widget};
-use std::str::FromStr;
+
+use crate::ui::theme::Theme;
 
 pub struct AppLayout;
 
@@ -37,7 +37,7 @@ impl AppLayout {
         let [header_area, content_area] = main_layout.areas(padded_area);
 
         // Divide header between pure logo and database selector
-        let header_layout = Layout::horizontal([Constraint::Min(50), Constraint::Length(35)]);
+        let header_layout = Layout::horizontal([Constraint::Min(80), Constraint::Length(50)]);
 
         // Extract the areas from the header layout
         let [logo_area, db_selector_area] = header_layout.areas(header_area);
@@ -65,11 +65,8 @@ impl AppLayout {
     }
 
     /// Render a background that fills the entire area
-    pub fn render_background(area: Rect, buf: &mut Buffer) {
-        let background_color = Color::from_str("#002626").unwrap();
-        let foreground_color = Color::from_str("#FCF1D5").unwrap();
-        let background =
-            Block::default().style(Style::default().bg(background_color).fg(foreground_color));
+    pub fn render_background(area: Rect, buf: &mut Buffer, theme: &Theme) {
+        let background = Block::default().style(Theme::fg_bg(&theme.foreground, &theme.background));
         background.render(area, buf);
     }
 }

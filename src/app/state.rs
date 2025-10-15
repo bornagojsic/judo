@@ -4,10 +4,11 @@ use crate::db::connections::init_db;
 use crate::db::models::{TodoList, UIList};
 use crate::ui::components::{
     AddDBPopUp, AddItemPopUp, AddListPopUp, ChangeDBPopUp, DBSelector, InputState, ItemsComponent,
-    ListsComponent, Logo, ModifyItemPopUp, ModifyListPopUp,
+    ListsComponent, Logo, ModifyDBPopUp, ModifyItemPopUp, ModifyListPopUp,
 };
 use crate::ui::cursor::CursorState;
 use crate::ui::layout::AppLayout;
+use crate::ui::theme::Theme;
 use color_eyre::Result;
 use crossterm::event::{self, KeyEvent};
 use ratatui::DefaultTerminal;
@@ -33,6 +34,8 @@ pub enum CurrentScreen {
     ChangeDB,
     /// Pop-up for adding a new database
     AddDB,
+    /// Pop-up screen for modifying an existing database
+    ModifyDB,
 }
 
 /// Main application state
@@ -53,6 +56,8 @@ pub struct App {
     pub selected_db_index: usize,
     /// Flag to indicate if the application should exit
     pub exit: bool,
+    /// Theme configuration for the application
+    pub theme: Theme,
 }
 
 impl App {
@@ -63,6 +68,7 @@ impl App {
     pub async fn new() -> Self {
         // Read the config (creates default if missing)
         let config = Config::read().expect("Failed to read config file");
+        let theme = config.theme.clone().unwrap_or(Theme::default());
 
         // Extract the default db and its connection string
         let default_db_config = config
@@ -91,6 +97,7 @@ impl App {
             input_state: InputState::new(),
             selected_db_index: 0,
             exit: false,
+            theme,
         }
     }
 
@@ -183,6 +190,7 @@ impl App {
             }
             CurrentScreen::ChangeDB => EventHandler::handle_change_db_screen_key(self, key).await,
             CurrentScreen::AddDB => EventHandler::handle_add_db_screen_key(self, key).await,
+            CurrentScreen::ModifyDB => EventHandler::handle_modify_db_screen_key(self, key).await,
         }
     }
 
@@ -329,12 +337,90 @@ impl App {
         }
         Ok(())
     }
+
+    /// Delete the selected database
+    pub async fn delete_selected_db(&mut self) -> Result<()> {
+        if self.selected_db_index < self.config.dbs.len() {
+            let removed_db = self.config.dbs.remove(self.selected_db_index);
+
+            // If the removed DB was the default, clear or update the default
+            if self.config.default == removed_db.name {
+                self.config.default = if !self.config.dbs.is_empty() {
+                    self.config.dbs[0].name.clone() // Set to first DB if any remain
+                } else {
+                    String::new() // Or use Option<String> if default can be None
+                };
+            }
+
+            // Write updated config to file
+            let config_dir = dirs::config_dir()
+                .ok_or_else(|| color_eyre::eyre::eyre!("Could not find config directory"))?
+                .join("judo");
+            let config_path = config_dir.join("judo.toml");
+
+            self.config
+                .write(&config_path)
+                .map_err(|e| color_eyre::eyre::eyre!("Failed to save config: {}", e))?;
+        }
+        Ok(())
+    }
+
+    /// Modify the selected database's name and/or connection string
+    pub async fn modify_selected_db(
+        &mut self,
+        new_name: Option<String>,
+        new_connection_str: Option<String>,
+    ) -> Result<()> {
+        if let Some(selected_db) = self.config.dbs.get_mut(self.selected_db_index) {
+            // Update name if provided
+            if let Some(name) = new_name {
+                // If this DB is the default, update default name as well
+                if self.config.default == selected_db.name {
+                    self.config.default = name.clone();
+                }
+                selected_db.name = name;
+            }
+            // Update connection string if provided
+            if let Some(conn_str) = new_connection_str {
+                selected_db.connection_str = conn_str;
+            }
+
+            // Write updated config to file
+            let config_dir = dirs::config_dir()
+                .ok_or_else(|| color_eyre::eyre::eyre!("Could not find config directory"))?
+                .join("judo");
+            let config_path = config_dir.join("judo.toml");
+
+            self.config
+                .write(&config_path)
+                .map_err(|e| color_eyre::eyre::eyre!("Failed to save config: {}", e))?;
+        }
+        Ok(())
+    }
+
+    /// Enter the "Modify DB" screen by opening the corresponding pop-up
+    pub fn enter_modify_db_screen(&mut self) {
+        if let Some(selected_db) = self.config.dbs.get(self.selected_db_index) {
+            self.input_state = InputState {
+                current_input: selected_db.name.clone(),
+                cursor_pos: 0,
+                is_modifying: true,
+            };
+            self.current_screen = CurrentScreen::ModifyDB;
+        }
+    }
+
+    /// Exit the Modify DB screen without saving
+    pub fn exit_modify_db_without_saving(&mut self) {
+        self.current_screen = CurrentScreen::ChangeDB;
+        self.input_state.clear();
+    }
 }
 
 impl Widget for &mut App {
     fn render(self, area: Rect, buf: &mut Buffer) {
         // Render background
-        AppLayout::render_background(area, buf);
+        AppLayout::render_background(area, buf, &self.theme);
 
         // Calculate layout areas
         let (lists_area, items_area, logo_area, db_selector_area, closed_selector_area) =
@@ -348,30 +434,48 @@ impl Widget for &mut App {
             self.current_screen,
             CurrentScreen::ChangeDB | CurrentScreen::AddDB
         ) {
-            DBSelector::render(closed_selector_area, buf, &self.current_db_config.name);
+            DBSelector::render(
+                closed_selector_area,
+                buf,
+                &self.current_db_config.name,
+                &self.theme,
+            );
         }
 
         // Render the main areas
-        self.lists_component.render(lists_area, buf);
+        self.lists_component.render(lists_area, buf, &self.theme);
 
         // Render items with the selected list
         let selected_list = self.lists_component.get_selected_list_mut();
-        ItemsComponent::render(selected_list, items_area, buf);
+        ItemsComponent::render(selected_list, items_area, buf, &self.theme);
 
         // Render popup screens if active
         match self.current_screen {
-            CurrentScreen::AddList => AddListPopUp::render(&self.input_state, lists_area, buf),
+            CurrentScreen::AddList => {
+                AddListPopUp::render(&self.input_state, lists_area, buf, &self.theme)
+            }
             CurrentScreen::ModifyList => {
-                ModifyListPopUp::render(&self.input_state, lists_area, buf)
+                ModifyListPopUp::render(&self.input_state, lists_area, buf, &self.theme)
             }
-            CurrentScreen::AddItem => AddItemPopUp::render(&self.input_state, items_area, buf),
+            CurrentScreen::AddItem => {
+                AddItemPopUp::render(&self.input_state, items_area, buf, &self.theme)
+            }
             CurrentScreen::ModifyItem => {
-                ModifyItemPopUp::render(&self.input_state, items_area, buf)
+                ModifyItemPopUp::render(&self.input_state, items_area, buf, &self.theme)
             }
-            CurrentScreen::ChangeDB => {
-                ChangeDBPopUp::render(&self.config, self.selected_db_index, db_selector_area, buf)
+            CurrentScreen::ChangeDB => ChangeDBPopUp::render(
+                &self.config,
+                self.selected_db_index,
+                db_selector_area,
+                buf,
+                &self.theme,
+            ),
+            CurrentScreen::AddDB => {
+                AddDBPopUp::render(&self.input_state, db_selector_area, buf, &self.theme)
             }
-            CurrentScreen::AddDB => AddDBPopUp::render(&self.input_state, db_selector_area, buf),
+            CurrentScreen::ModifyDB => {
+                ModifyDBPopUp::render(&self.input_state, db_selector_area, buf, &self.theme)
+            }
             _ => {}
         }
     }

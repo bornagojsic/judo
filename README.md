@@ -107,8 +107,8 @@ Navigate between lists and items using the keyboard. You can switch between diff
 | `↓` | Move down in database list |
 | `Enter` | Switch to selected database |
 | `A` | Add new database |
-| `M` | Modify database |
-| `D` | Delete selected database |
+| `M` | Modify the selected database |
+| `D` | Delete the selected database |
 | `S` | Set selected database as default |
 | `Esc` | Return to main screen |
 
@@ -129,12 +129,20 @@ Judo uses a configuration file to manage multiple databases. The configuration i
 - **Linux/macOS**: `~/.config/judo/judo.toml`
 - **Windows**: `%APPDATA%\judo\judo.toml`
 
-The configuration file is automatically created on first run with a default database. You can add new databases through the UI or manually edit the configuration file. The default database is called "dojo". 
+The configuration file is automatically created on first run with a default database. You can add new databases through the UI or manually edit the configuration file. The default database is called "dojo". You can also configure the theme colors in the configuration file.
 
 ### Example Configuration
 
 ```toml
 default = "dojo"
+
+[theme]
+background = "#020202"
+foreground = "#AAAAAA"
+accent = "#FF0A0A"
+border = "#AAAAAA"
+highlight_bg = "#AAAAAA"
+highlight_fg = "#020202"
 
 [[dbs]]
 name = "dojo"

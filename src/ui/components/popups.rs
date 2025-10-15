@@ -221,7 +221,7 @@ impl ChangeDBPopUp {
             .highlight_symbol(" ▸ ") // Selection indicator
             .highlight_style(
                 // Swap foreground and background for selected item
-                Theme::fg_bg(&theme.background, &theme.foreground),
+                Theme::fg_bg(&theme.highlight_fg, &theme.highlight_bg),
             )
             .highlight_spacing(ratatui::widgets::HighlightSpacing::Always);
 

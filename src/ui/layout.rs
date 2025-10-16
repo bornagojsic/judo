@@ -8,7 +8,7 @@ pub struct AppLayout;
 
 impl AppLayout {
     /// Calculate responsive layout areas
-    pub fn calculate_main_layout(area: Rect) -> (Rect, Rect, Rect, Rect, Rect) {
+    pub fn calculate_main_layout(area: Rect) -> (Rect, Rect, Rect, Rect) {
         // Add overall padding around the entire TUI
         // Adjust these values to control how much space you want from terminal borders
         let padded_area = area.inner(Margin {
@@ -42,12 +42,6 @@ impl AppLayout {
         // Extract the areas from the header layout
         let [logo_area, db_selector_area] = header_layout.areas(header_area);
 
-        // Split between closed and open selector
-        let selector_layout = Layout::vertical([Constraint::Percentage(56), Constraint::Fill(1)]);
-
-        // When the user changes DB it opens up as a dropdown
-        let [_, closed_selector_area] = selector_layout.areas(db_selector_area);
-
         // Further subdivide the content area into list area and item area
         let content_layout =
             Layout::horizontal([Constraint::Percentage(30), Constraint::Percentage(70)]);
@@ -55,13 +49,7 @@ impl AppLayout {
         // Extract the areas for lists and items
         let [lists_area, items_area] = content_layout.areas(content_area);
 
-        (
-            lists_area,
-            items_area,
-            logo_area,
-            db_selector_area,
-            closed_selector_area,
-        )
+        (lists_area, items_area, logo_area, db_selector_area)
     }
 
     /// Render a background that fills the entire area

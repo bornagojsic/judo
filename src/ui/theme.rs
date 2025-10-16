@@ -10,7 +10,9 @@ pub struct Theme {
     pub border: String,
     pub highlight_bg: String,
     pub highlight_fg: String,
-    // Add more as needed
+    pub border_accent: String,
+    pub highlight_not_focused_fg: String,
+    pub highlight_not_focused_bg: String,
 }
 
 impl Theme {
@@ -26,6 +28,9 @@ impl Theme {
             border: "#FCF1D5".to_string(),
             highlight_bg: "#FCF1D5".to_string(),
             highlight_fg: "#002626".to_string(),
+            border_accent: "#FFA69E".to_string(),
+            highlight_not_focused_fg: "#002626".to_string(),
+            highlight_not_focused_bg: "#FCF1D5".to_string(),
         }
     }
 
@@ -41,5 +46,16 @@ impl Theme {
         Style::default()
             .fg(Self::color_from_hex(fg_hex))
             .bg(Self::color_from_hex(bg_hex))
+    }
+
+    pub fn highlight(&self, focused: bool) -> Style {
+        if focused {
+            Self::fg_bg(&self.highlight_fg, &self.highlight_bg)
+        } else {
+            Self::fg_bg(
+                &self.highlight_not_focused_fg,
+                &self.highlight_not_focused_bg,
+            )
+        }
     }
 }

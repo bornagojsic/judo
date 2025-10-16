@@ -134,7 +134,13 @@ impl ItemsComponent {
     }
 
     /// Render the list of todo items for the selected list
-    pub fn render(selected_list: Option<&mut UIList>, area: Rect, buf: &mut Buffer, theme: &Theme) {
+    pub fn render(
+        selected_list: Option<&mut UIList>,
+        area: Rect,
+        buf: &mut Buffer,
+        theme: &Theme,
+        selected: bool,
+    ) {
         // Command hints for items
         let list_command_hints = Line::from(vec![
             Span::raw(" "),
@@ -158,14 +164,27 @@ impl ItemsComponent {
         ])
         .right_aligned();
 
+        let title_line = Line::from(vec![
+            Span::raw("  I T E M S "),
+            Span::styled("[2]  ", Theme::fg(&theme.accent)),
+        ])
+        .left_aligned();
+
+        let border_color = if selected {
+            Theme::fg(&theme.border_accent)
+        } else {
+            Theme::fg(&theme.border)
+        };
+
         let block = Block::default()
             .padding(Padding::new(2, 2, 1, 1))
-            .title_top(Line::raw("  I T E M S  ").left_aligned())
+            .title_top(title_line.left_aligned())
             .title_bottom(list_command_hints)
             .title_bottom(quit_hint)
             .title_alignment(Alignment::Center)
             .borders(Borders::ALL)
-            .border_type(BorderType::Rounded);
+            .border_type(BorderType::Rounded)
+            .border_style(border_color);
 
         if let Some(ui_list) = selected_list {
             // Extract the corresponding items with styling
@@ -178,10 +197,7 @@ impl ItemsComponent {
             let list: List = List::new(items)
                 .block(block)
                 .highlight_symbol(" ▸ ")
-                .highlight_style(
-                    // Swap foreground and background for selected item
-                    Theme::fg_bg(&theme.highlight_fg, &theme.highlight_bg),
-                )
+                .highlight_style(Theme::highlight(&theme, selected))
                 .highlight_spacing(HighlightSpacing::Always);
 
             StatefulWidget::render(list, area, buf, &mut ui_list.item_state);

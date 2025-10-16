@@ -6,35 +6,151 @@ use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 pub struct EventHandler;
 
 impl EventHandler {
-    /// Handle key press from user in main screen
-    pub async fn handle_main_screen_key(app: &mut App, key: KeyEvent) {
-        match (key.code, key.modifiers) {
-            (KeyCode::Char('q'), KeyModifiers::NONE) => app.exit = true, // Quit application
-            (KeyCode::Char('s'), KeyModifiers::NONE) => app.lists_component.select_next(), // Navigate down in lists
-            (KeyCode::Char('w'), KeyModifiers::NONE) => app.lists_component.select_previous(), // Navigate up in lists
-            (KeyCode::Char('A'), KeyModifiers::SHIFT) => app.enter_add_list_screen(), // Add new list
-            (KeyCode::Char('a'), KeyModifiers::NONE) => app.enter_add_item_screen(), // Add new item
-            (KeyCode::Char('C'), KeyModifiers::SHIFT) => app.enter_change_db_screen(), // Change database
-            (KeyCode::Char('M'), KeyModifiers::SHIFT) => {
+    /// Handle key events that are screen-agnostic
+    pub fn matches_global_keys(app: &mut App, key: KeyEvent) -> bool {
+        match key.code {
+            KeyCode::Char('q') => app.exit = true, // Quit application
+            KeyCode::Char('1') => {
+                app.current_screen = CurrentScreen::ListSelection;
+                if app.lists_component.selected().is_none() && !app.lists_component.lists.is_empty()
+                {
+                    app.lists_component.list_state.select(Some(0));
+                }
+            }
+            KeyCode::Char('2') => {
+                app.current_screen = CurrentScreen::ItemSelection;
+                if let Some(selected_list) = app.lists_component.get_selected_list_mut() {
+                    ItemsComponent::select_first_item(selected_list);
+                }
+            }
+            KeyCode::Char('3') => {
+                app.current_screen = CurrentScreen::DBSelection;
+            }
+            _ => return false,
+        }
+        true
+    }
+
+    /// Handle key press from user in list selection screen
+    pub async fn handle_list_selection_screen_key(app: &mut App, key: KeyEvent) {
+        if EventHandler::matches_global_keys(app, key) {
+            return;
+        }
+
+        let modifier_shift = key.modifiers.contains(KeyModifiers::SHIFT);
+
+        if modifier_shift {
+            match key.code {
+                KeyCode::Up | KeyCode::Char('K') => {
+                    // Ctrl+Up: Move selected item up
+                    if let Err(e) =
+                        ListsComponent::move_selected_list_up(&mut app.lists_component, &app.pool)
+                            .await
+                    {
+                        eprintln!("Failed to move list up: {}", e);
+                    }
+                }
+                KeyCode::Down | KeyCode::Char('J') => {
+                    // Ctrl+Down: Move selected item down
+                    if let Err(e) =
+                        ListsComponent::move_selected_list_down(&mut app.lists_component, &app.pool)
+                            .await
+                    {
+                        eprintln!("Failed to move list down: {}", e);
+                    }
+                }
+                _ => {}
+            }
+            return;
+        }
+
+        match key.code {
+            KeyCode::Down | KeyCode::Char('j') => app.lists_component.select_next(),
+            KeyCode::Up | KeyCode::Char('k') => app.lists_component.select_previous(),
+            KeyCode::Right | KeyCode::Char('l') => {
+                app.current_screen = CurrentScreen::ItemSelection;
+                if let Some(selected_list) = app.lists_component.get_selected_list_mut() {
+                    ItemsComponent::select_first_item(selected_list);
+                }
+            }
+            KeyCode::Char('a') => app.enter_add_list_screen(), // Add new list
+            KeyCode::Char('m') => {
                 if let Some(selected_list) = app.lists_component.get_selected_list() {
                     app.enter_modify_list_screen(&selected_list.list.clone())
                 }
-            } // Modify existing list
-            (KeyCode::Char('m'), KeyModifiers::NONE) => {
-                if let Some(selected_list) = app.lists_component.get_selected_list() {
-                    app.enter_modify_item_screen(&selected_list.clone())
-                }
-            } // Modify existing item
-            (KeyCode::Char('D'), KeyModifiers::SHIFT) => {
+            }
+            KeyCode::Char('d') => {
                 if let Err(e) =
                     ListsComponent::delete_selected_list_static(&mut app.lists_component, &app.pool)
                         .await
                 {
-                    // Log error but don't crash the application
                     eprintln!("Failed to delete list: {}", e);
                 }
             }
-            (KeyCode::Char('d'), KeyModifiers::NONE) => {
+            KeyCode::Esc => {
+                app.current_screen = CurrentScreen::ListSelection;
+            }
+            _ => {}
+        }
+    }
+
+    /// Handle key press from user in item selection screen
+    pub async fn handle_item_selection_screen_key(app: &mut App, key: KeyEvent) {
+        if EventHandler::matches_global_keys(app, key) {
+            return;
+        }
+
+        let modifier_shift = key.modifiers.contains(KeyModifiers::SHIFT);
+
+        if modifier_shift {
+            match key.code {
+                KeyCode::Up | KeyCode::Char('K') => {
+                    // Ctrl+Up: Move selected item up
+                    if let Some(selected_list) = app.lists_component.get_selected_list_mut()
+                        && let Err(e) =
+                            ItemsComponent::move_selected_item_up(selected_list, &app.pool).await
+                    {
+                        eprintln!("Failed to move item up: {}", e);
+                    }
+                }
+                KeyCode::Down | KeyCode::Char('J') => {
+                    // Ctrl+Down: Move selected item down
+                    if let Some(selected_list) = app.lists_component.get_selected_list_mut()
+                        && let Err(e) =
+                            ItemsComponent::move_selected_item_down(selected_list, &app.pool).await
+                    {
+                        eprintln!("Failed to move item down: {}", e);
+                    }
+                }
+                _ => {}
+            }
+            return;
+        }
+
+        match key.code {
+            KeyCode::Down | KeyCode::Char('j') => {
+                if let Some(selected_list) = app.lists_component.get_selected_list_mut() {
+                    ItemsComponent::select_next_item(selected_list);
+                }
+            }
+            KeyCode::Up | KeyCode::Char('k') => {
+                if let Some(selected_list) = app.lists_component.get_selected_list_mut() {
+                    ItemsComponent::select_previous_item(selected_list);
+                }
+            }
+            KeyCode::Left | KeyCode::Char('h') => {
+                app.current_screen = CurrentScreen::ListSelection;
+                if let Some(selected_list) = app.lists_component.get_selected_list_mut() {
+                    ItemsComponent::remove_item_selection(selected_list);
+                }
+            }
+            KeyCode::Char('a') => app.enter_add_item_screen(),
+            KeyCode::Char('m') => {
+                if let Some(selected_list) = app.lists_component.get_selected_list() {
+                    app.enter_modify_item_screen(&selected_list.clone())
+                }
+            }
+            KeyCode::Char('d') => {
                 if let Some(selected_list) = app.lists_component.get_selected_list_mut()
                     && let Err(e) =
                         ItemsComponent::delete_selected_item(selected_list, &app.pool).await
@@ -42,67 +158,15 @@ impl EventHandler {
                     eprintln!("Failed to delete item: {}", e);
                 }
             }
-            (KeyCode::Enter, KeyModifiers::NONE) => {
+            KeyCode::Enter => {
                 if let Some(selected_list) = app.lists_component.get_selected_list_mut()
                     && let Err(e) = ItemsComponent::toggle_item_done(selected_list, &app.pool).await
                 {
                     eprintln!("Failed to toggle item: {}", e);
                 }
             }
-            (KeyCode::Char('s'), KeyModifiers::CONTROL) => {
-                // Ctrl+S: Move selected list down
-                if let Err(e) =
-                    ListsComponent::move_selected_list_down(&mut app.lists_component, &app.pool)
-                        .await
-                {
-                    eprintln!("Failed to move list down: {}", e);
-                }
-            }
-            (KeyCode::Char('w'), KeyModifiers::CONTROL) => {
-                // Ctrl+W: Move selected list up
-                if let Err(e) =
-                    ListsComponent::move_selected_list_up(&mut app.lists_component, &app.pool).await
-                {
-                    eprintln!("Failed to move list up: {}", e);
-                }
-            }
-            (KeyCode::Up, KeyModifiers::CONTROL) => {
-                // Ctrl+Up: Move selected item up
-                if let Some(selected_list) = app.lists_component.get_selected_list_mut()
-                    && let Err(e) =
-                        ItemsComponent::move_selected_item_up(selected_list, &app.pool).await
-                {
-                    eprintln!("Failed to move item up: {}", e);
-                }
-            }
-            (KeyCode::Down, KeyModifiers::CONTROL) => {
-                // Ctrl+Down: Move selected item down
-                if let Some(selected_list) = app.lists_component.get_selected_list_mut()
-                    && let Err(e) =
-                        ItemsComponent::move_selected_item_down(selected_list, &app.pool).await
-                {
-                    eprintln!("Failed to move item down: {}", e);
-                }
-            }
-            (KeyCode::Down, KeyModifiers::NONE) => {
-                if let Some(selected_list) = app.lists_component.get_selected_list_mut() {
-                    ItemsComponent::select_next_item(selected_list);
-                }
-            }
-            (KeyCode::Up, KeyModifiers::NONE) => {
-                if let Some(selected_list) = app.lists_component.get_selected_list_mut() {
-                    ItemsComponent::select_previous_item(selected_list);
-                }
-            }
-            (KeyCode::Left, KeyModifiers::NONE) => {
-                if let Some(selected_list) = app.lists_component.get_selected_list_mut() {
-                    ItemsComponent::remove_item_selection(selected_list);
-                }
-            }
-            (KeyCode::Right, KeyModifiers::NONE) => {
-                if let Some(selected_list) = app.lists_component.get_selected_list_mut() {
-                    ItemsComponent::select_first_item(selected_list);
-                }
+            KeyCode::Esc => {
+                app.current_screen = CurrentScreen::ItemSelection;
             }
             _ => {}
         }
@@ -131,7 +195,7 @@ impl EventHandler {
                         {
                             eprintln!("Failed to update list: {}", e);
                         } else {
-                            app.current_screen = CurrentScreen::Main;
+                            app.current_screen = CurrentScreen::ListSelection;
                             app.input_state.clear();
                         }
                     } else if let Err(e) =
@@ -140,7 +204,7 @@ impl EventHandler {
                     {
                         eprintln!("Failed to create list: {}", e);
                     } else {
-                        app.current_screen = CurrentScreen::Main;
+                        app.current_screen = CurrentScreen::ListSelection;
                         app.input_state.clear();
                     }
                 }
@@ -169,7 +233,7 @@ impl EventHandler {
                         {
                             eprintln!("Failed to update item: {}", e);
                         } else {
-                            app.current_screen = CurrentScreen::Main;
+                            app.current_screen = CurrentScreen::ItemSelection;
                             app.input_state.clear();
                         }
                     } else if let Err(e) =
@@ -177,7 +241,7 @@ impl EventHandler {
                     {
                         eprintln!("Failed to create item: {}", e);
                     } else {
-                        app.current_screen = CurrentScreen::Main;
+                        app.current_screen = CurrentScreen::ItemSelection;
                         app.input_state.clear();
                     }
                 }
@@ -188,6 +252,10 @@ impl EventHandler {
 
     /// Handle change of db
     pub async fn handle_change_db_screen_key(app: &mut App, key: KeyEvent) {
+        if EventHandler::matches_global_keys(app, key) {
+            return;
+        }
+
         match key.code {
             KeyCode::Esc => app.exit_change_db_without_saving(),
             KeyCode::Up => app.select_previous_db(),
@@ -198,16 +266,20 @@ impl EventHandler {
                 if let Err(e) = app.switch_to_selected_db().await {
                     eprintln!("Failed to switch database: {}", e);
                 }
+                app.current_screen = CurrentScreen::ListSelection;
             }
-            KeyCode::Char('A') => app.enter_add_db_screen(),
-            KeyCode::Char('S') => {
+            KeyCode::Char('a') => app.enter_add_db_screen(),
+            KeyCode::Char('s') => {
                 // Set selected database as default
+                if let Err(e) = app.switch_to_selected_db().await {
+                    eprintln!("Failed to switch database: {}", e);
+                }
                 if let Err(e) = app.set_selected_db_as_default().await {
                     eprintln!("Failed to set database as default: {}", e);
                 }
             }
-            KeyCode::Char('M') => app.enter_modify_db_screen(),
-            KeyCode::Char('D') => {
+            KeyCode::Char('m') => app.enter_modify_db_screen(),
+            KeyCode::Char('d') => {
                 // Delete selected database
                 if let Err(e) = app.delete_selected_db().await {
                     eprintln!("Failed to delete database: {}", e);
@@ -232,7 +304,7 @@ impl EventHandler {
                     if let Err(e) = app.create_new_database(db_name, false).await {
                         eprintln!("Failed to create database: {}", e);
                     } else {
-                        app.current_screen = CurrentScreen::ChangeDB;
+                        app.current_screen = CurrentScreen::DBSelection;
                         app.input_state.clear();
                     }
                 }

@@ -3,7 +3,7 @@ use crate::db::config::{Config, DBConfig};
 use crate::db::connections::init_db;
 use crate::db::models::{TodoList, UIList};
 use crate::ui::components::{
-    AddDBPopUp, AddItemPopUp, AddListPopUp, ChangeDBPopUp, DBSelector, InputState, ItemsComponent,
+    AddDBPopUp, AddItemPopUp, AddListPopUp, DatabaseComponent, InputState, ItemsComponent,
     ListsComponent, Logo, ModifyDBPopUp, ModifyItemPopUp, ModifyListPopUp,
 };
 use crate::ui::cursor::CursorState;
@@ -20,8 +20,10 @@ use sqlx::SqlitePool;
 /// Enum representing the different screens in the application
 #[derive(Debug, Clone, PartialEq)]
 pub enum CurrentScreen {
-    /// Main screen showing lists and items
-    Main,
+    /// Screen for selecting a list
+    ListSelection,
+    /// Screen for selecting an item
+    ItemSelection,
     /// Pop-up screen for adding a new list
     AddList,
     /// Pop-up screen for modifying an existing list
@@ -31,7 +33,7 @@ pub enum CurrentScreen {
     /// Pop-up screen for adding a new item
     ModifyItem,
     /// Pop-up for changing database
-    ChangeDB,
+    DBSelection,
     /// Pop-up for adding a new database
     AddDB,
     /// Pop-up screen for modifying an existing database
@@ -48,6 +50,8 @@ pub struct App {
     pub current_screen: CurrentScreen,
     /// Database connection pool
     pub pool: SqlitePool,
+    /// Database component for managing databases
+    pub database_component: DatabaseComponent,
     /// Lists component for managing todo lists
     pub lists_component: ListsComponent,
     /// State of user-provided input
@@ -79,7 +83,7 @@ impl App {
             .expect("Failed to connect to database");
 
         // Start from main screen
-        let current_screen = CurrentScreen::Main;
+        let current_screen = CurrentScreen::ListSelection;
 
         // Create lists component and load data
         let mut lists_component = ListsComponent::new();
@@ -88,14 +92,21 @@ impl App {
             .await
             .expect("Failed to read lists");
 
+        let selected_db_index = config
+            .dbs
+            .iter()
+            .position(|db| db.name == default_db_config.name)
+            .unwrap_or(0);
+
         Self {
             config,
             current_db_config: default_db_config,
             current_screen,
             pool,
+            database_component: DatabaseComponent::new(),
             lists_component,
             input_state: InputState::new(),
-            selected_db_index: 0,
+            selected_db_index,
             exit: false,
             theme,
         }
@@ -178,7 +189,6 @@ impl App {
     /// Handle key events and delegate to appropriate handler
     async fn handle_key_event(&mut self, key: KeyEvent) {
         match self.current_screen {
-            CurrentScreen::Main => EventHandler::handle_main_screen_key(self, key).await,
             CurrentScreen::AddList | CurrentScreen::ModifyList => {
                 EventHandler::handle_add_or_modify_list_screen_key(self, key).await
             }
@@ -188,9 +198,17 @@ impl App {
             CurrentScreen::ModifyItem => {
                 EventHandler::handle_add_or_modify_item_screen_key(self, key).await
             }
-            CurrentScreen::ChangeDB => EventHandler::handle_change_db_screen_key(self, key).await,
+            CurrentScreen::DBSelection => {
+                EventHandler::handle_change_db_screen_key(self, key).await
+            }
             CurrentScreen::AddDB => EventHandler::handle_add_db_screen_key(self, key).await,
             CurrentScreen::ModifyDB => EventHandler::handle_modify_db_screen_key(self, key).await,
+            CurrentScreen::ListSelection => {
+                EventHandler::handle_list_selection_screen_key(self, key).await
+            }
+            CurrentScreen::ItemSelection => {
+                EventHandler::handle_item_selection_screen_key(self, key).await
+            }
         }
     }
 
@@ -236,13 +254,13 @@ impl App {
 
     /// Exit the Add List screen without saving
     pub fn exit_add_or_modify_list_without_saving(&mut self) {
-        self.current_screen = CurrentScreen::Main;
+        self.current_screen = CurrentScreen::ListSelection;
         self.input_state.clear();
     }
 
     /// Exit the Add Item screen without saving
     pub fn exit_add_item_without_saving(&mut self) {
-        self.current_screen = CurrentScreen::Main;
+        self.current_screen = CurrentScreen::ItemSelection;
         self.input_state.clear();
     }
 
@@ -255,12 +273,12 @@ impl App {
             .iter()
             .position(|db| db.name == self.current_db_config.name)
             .unwrap_or(0);
-        self.current_screen = CurrentScreen::ChangeDB;
+        self.current_screen = CurrentScreen::DBSelection;
     }
 
     /// Exit the Change DB screen without saving
     pub fn exit_change_db_without_saving(&mut self) {
-        self.current_screen = CurrentScreen::Main;
+        self.current_screen = CurrentScreen::DBSelection;
     }
 
     /// Enter the "Add DB" screen by opening the corresponding pop-up
@@ -270,7 +288,7 @@ impl App {
 
     /// Exit the Add DB screen without saving
     pub fn exit_add_db_without_saving(&mut self) {
-        self.current_screen = CurrentScreen::ChangeDB;
+        self.current_screen = CurrentScreen::DBSelection;
         self.input_state.clear();
     }
 
@@ -313,8 +331,15 @@ impl App {
                 .await
                 .map_err(|e| color_eyre::eyre::eyre!("Failed to load lists: {}", e))?;
 
+            // Select the first list if available
+            if !self.lists_component.lists.is_empty() {
+                self.lists_component.list_state.select(Some(0));
+            } else {
+                self.lists_component.list_state.select(None);
+            }
+
             // Return to main screen
-            self.current_screen = CurrentScreen::Main;
+            self.current_screen = CurrentScreen::ListSelection;
         }
         Ok(())
     }
@@ -412,7 +437,7 @@ impl App {
 
     /// Exit the Modify DB screen without saving
     pub fn exit_modify_db_without_saving(&mut self) {
-        self.current_screen = CurrentScreen::ChangeDB;
+        self.current_screen = CurrentScreen::DBSelection;
         self.input_state.clear();
     }
 }
@@ -423,31 +448,39 @@ impl Widget for &mut App {
         AppLayout::render_background(area, buf, &self.theme);
 
         // Calculate layout areas
-        let (lists_area, items_area, logo_area, db_selector_area, closed_selector_area) =
+        let (lists_area, items_area, logo_area, db_selector_area) =
             AppLayout::calculate_main_layout(area);
 
         // Render logo
         Logo::render(logo_area, buf);
 
-        // Render db selector only when not in database-related popups
-        if !matches!(
-            self.current_screen,
-            CurrentScreen::ChangeDB | CurrentScreen::AddDB
-        ) {
-            DBSelector::render(
-                closed_selector_area,
-                buf,
-                &self.current_db_config.name,
-                &self.theme,
-            );
-        }
+        // Render db selector
+        self.database_component.render(
+            &self.config,
+            db_selector_area,
+            buf,
+            &self.theme,
+            self.current_screen == CurrentScreen::DBSelection,
+            Some(self.selected_db_index),
+        );
 
         // Render the main areas
-        self.lists_component.render(lists_area, buf, &self.theme);
+        self.lists_component.render(
+            lists_area,
+            buf,
+            &self.theme,
+            self.current_screen == CurrentScreen::ListSelection,
+        );
 
         // Render items with the selected list
         let selected_list = self.lists_component.get_selected_list_mut();
-        ItemsComponent::render(selected_list, items_area, buf, &self.theme);
+        ItemsComponent::render(
+            selected_list,
+            items_area,
+            buf,
+            &self.theme,
+            self.current_screen == CurrentScreen::ItemSelection,
+        );
 
         // Render popup screens if active
         match self.current_screen {
@@ -463,13 +496,13 @@ impl Widget for &mut App {
             CurrentScreen::ModifyItem => {
                 ModifyItemPopUp::render(&self.input_state, items_area, buf, &self.theme)
             }
-            CurrentScreen::ChangeDB => ChangeDBPopUp::render(
-                &self.config,
-                self.selected_db_index,
-                db_selector_area,
-                buf,
-                &self.theme,
-            ),
+            // CurrentScreen::ChangeDB => ChangeDBPopUp::render(
+            //     &self.config,
+            //     self.selected_db_index,
+            //     db_selector_area,
+            //     buf,
+            //     &self.theme,
+            // ),
             CurrentScreen::AddDB => {
                 AddDBPopUp::render(&self.input_state, db_selector_area, buf, &self.theme)
             }

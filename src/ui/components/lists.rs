@@ -176,11 +176,11 @@ impl ListsComponent {
     }
 
     /// Render the list of todo lists
-    pub fn render(&mut self, area: Rect, buf: &mut Buffer, theme: &Theme) {
+    pub fn render(&mut self, area: Rect, buf: &mut Buffer, theme: &Theme, selected: bool) {
         // Command hints for lists
         let list_command_hints = Line::from(vec![
             Span::raw(" "),
-            Span::styled(" w,s ", Theme::fg(&theme.foreground)),
+            Span::styled(" ↓↑ ", Theme::fg(&theme.foreground)),
             Span::styled("[A]", Theme::fg(&theme.accent)),
             Span::styled("dd", Theme::fg(&theme.foreground)),
             Span::styled(" [D]", Theme::fg(&theme.accent)),
@@ -191,13 +191,26 @@ impl ListsComponent {
         ])
         .left_aligned();
 
+        let title_line = Line::from(vec![
+            Span::raw("  L I S T S "),
+            Span::styled("[1]  ", Theme::fg(&theme.accent)),
+        ])
+        .left_aligned();
+
+        let border_color = if selected {
+            Theme::fg(&theme.border_accent)
+        } else {
+            Theme::fg(&theme.border)
+        };
+
         let block = Block::default()
             .padding(Padding::new(2, 2, 1, 1))
-            .title_top(Line::raw("  L I S T S  ").left_aligned())
+            .title_top(title_line.left_aligned())
             .title_bottom(list_command_hints)
             .title_alignment(Alignment::Center)
-            .borders(Borders::TOP | Borders::LEFT | Borders::BOTTOM)
-            .border_type(BorderType::Rounded);
+            .borders(Borders::ALL)
+            .border_type(BorderType::Rounded)
+            .border_style(border_color);
 
         // Convert lists to display items
         let items: Vec<ListItem> = self
@@ -209,10 +222,7 @@ impl ListsComponent {
         let list: List = List::new(items)
             .block(block)
             .highlight_symbol(" ▸ ") // Selection indicator
-            .highlight_style(
-                // Swap foreground and background for selected item
-                Theme::fg_bg(&theme.highlight_fg, &theme.highlight_bg),
-            )
+            .highlight_style(Theme::highlight(&theme, selected))
             .highlight_spacing(HighlightSpacing::Always);
 
         StatefulWidget::render(list, area, buf, &mut self.list_state);

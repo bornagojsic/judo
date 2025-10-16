@@ -1,12 +1,9 @@
-use crate::db::config::Config;
 use crate::ui::cursor::CursorState;
 use crate::ui::theme::Theme;
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{
-    Block, BorderType, Borders, Clear, List, ListItem, Padding, Paragraph, Widget, Wrap,
-};
+use ratatui::widgets::{Block, BorderType, Borders, Clear, Padding, Paragraph, Widget, Wrap};
 
 pub struct AddListPopUp;
 pub struct ModifyListPopUp;
@@ -160,72 +157,6 @@ impl ModifyItemPopUp {
     /// Render popup for modifying item name
     pub fn render<T: CursorState>(state: &T, area: Rect, buf: &mut Buffer, theme: &Theme) {
         render_item_popup_kernel(state, area, buf, "Modify Item", theme);
-    }
-}
-
-pub struct ChangeDBPopUp;
-
-impl ChangeDBPopUp {
-    /// Render popup for selecting database
-    pub fn render(
-        config: &Config,
-        selected_index: usize,
-        area: Rect,
-        buf: &mut Buffer,
-        theme: &Theme,
-    ) {
-        // Command hints for change db popup
-        let change_db_command_hints = Line::from(vec![
-            Span::raw(" "),
-            Span::styled(" ↑↓ ", Theme::fg(&theme.foreground)),
-            Span::styled("[A]", Theme::fg(&theme.accent)),
-            Span::styled("dd", Theme::fg(&theme.foreground)),
-            Span::styled(" [S]", Theme::fg(&theme.accent)),
-            Span::styled("et Default", Theme::fg(&theme.foreground)),
-            Span::styled(" [D]", Theme::fg(&theme.accent)),
-            Span::styled("el", Theme::fg(&theme.foreground)),
-            Span::styled(" [M]", Theme::fg(&theme.accent)),
-            Span::styled("odify", Theme::fg(&theme.foreground)),
-            Span::styled(" [Esc]", Theme::fg(&theme.accent)),
-            Span::raw(" "),
-        ]);
-
-        Block::default()
-            .style(Theme::fg_bg(&theme.foreground, &theme.background))
-            .render(area, buf);
-
-        // Define the popup block with styling
-        let popup_block = Block::new()
-            .padding(Padding::new(2, 2, 1, 1))
-            .title(" Select Database ")
-            .title_style(Theme::fg(&theme.foreground))
-            .title_bottom(change_db_command_hints)
-            .borders(Borders::ALL)
-            .border_style(Theme::fg(&theme.border))
-            .border_type(BorderType::Rounded);
-
-        // Create list items from databases
-        let items: Vec<ListItem> = config
-            .dbs
-            .iter()
-            .map(|db| ListItem::from(db.name.clone()))
-            .collect();
-
-        // Create a mutable list state for rendering
-        let mut temp_list_state = ratatui::widgets::ListState::default();
-        temp_list_state.select(Some(selected_index));
-
-        // Render the database list
-        let list = List::new(items)
-            .block(popup_block)
-            .highlight_symbol(" ▸ ") // Selection indicator
-            .highlight_style(
-                // Swap foreground and background for selected item
-                Theme::fg_bg(&theme.highlight_fg, &theme.highlight_bg),
-            )
-            .highlight_spacing(ratatui::widgets::HighlightSpacing::Always);
-
-        ratatui::widgets::StatefulWidget::render(list, area, buf, &mut temp_list_state);
     }
 }
 

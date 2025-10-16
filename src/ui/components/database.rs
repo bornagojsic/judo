@@ -8,6 +8,7 @@ use ratatui::widgets::HighlightSpacing;
 use ratatui::widgets::{
     Block, BorderType, Borders, List, ListItem, ListState, Padding, StatefulWidget,
 };
+use textwrap::wrap;
 
 pub struct DatabaseComponent {
     pub list_state: ListState,
@@ -96,10 +97,22 @@ impl DatabaseComponent {
             .border_type(BorderType::Rounded)
             .border_style(border_color);
 
+        let inner = block.inner(area);
+        let width = inner.width as usize;
+
         let items: Vec<ListItem> = config
             .dbs
             .iter()
-            .map(|db| ListItem::from(Span::styled(db.name.clone(), Theme::fg(&theme.foreground))))
+            // .map(|db| ListItem::from(Span::styled(db.name.clone(), Theme::fg(&theme.foreground))))
+            .map(|db| {
+                let styled = Span::styled(db.name.clone(), Theme::fg(&theme.foreground));
+                let wrapped_lines = wrap(&styled.content, width);
+                let lines: Vec<Line> = wrapped_lines
+                    .into_iter()
+                    .map(|w| Line::from(w.to_string()))
+                    .collect();
+                ListItem::new(lines)
+            })
             .collect();
 
         let list = List::new(items)

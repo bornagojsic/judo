@@ -9,6 +9,8 @@ use ratatui::widgets::{
     Block, BorderType, Borders, HighlightSpacing, List, ListItem, Padding, StatefulWidget, Widget,
 };
 use sqlx::SqlitePool;
+use textwrap::wrap;
+
 pub struct ItemsComponent;
 
 impl ItemsComponent {
@@ -189,12 +191,23 @@ impl ItemsComponent {
             .border_type(BorderType::Rounded)
             .border_style(border_color);
 
+        let inner = block.inner(area);
+        let width = inner.width as usize;
+
         if let Some(ui_list) = selected_list {
             // Extract the corresponding items with styling
             let items: Vec<ListItem> = ui_list
                 .items
                 .iter()
-                .map(|ui_item| ListItem::from(Self::style_item(ui_item)))
+                .map(|ui_item| {
+                    let styled = Self::style_item(ui_item);
+                    let wrapped_lines = wrap(&styled.content, width);
+                    let lines: Vec<Line> = wrapped_lines
+                        .into_iter()
+                        .map(|w| Line::from(Span::styled(w.to_string(), styled.style)))
+                        .collect();
+                    ListItem::from(lines)
+                })
                 .collect();
 
             let list: List = List::new(items)

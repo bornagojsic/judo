@@ -40,6 +40,10 @@ pub enum CurrentScreen {
     ModifyDB,
     /// Screen for showing help
     Help,
+    /// Pop-up screen for deleting a list
+    DeleteListConfirmation,
+    /// Pop-up screen for deleting a database
+    DeleteDatabaseConfirmation,
 }
 
 /// Main application state
@@ -64,6 +68,10 @@ pub struct App {
     pub exit: bool,
     /// Theme configuration for the application
     pub theme: Theme,
+    /// Pending delete list name
+    pub pending_delete_list_name: Option<String>,
+    /// Pending delete database name
+    pub pending_delete_db_name: Option<String>,
 }
 
 impl App {
@@ -111,6 +119,8 @@ impl App {
             selected_db_index,
             exit: false,
             theme,
+            pending_delete_list_name: None,
+            pending_delete_db_name: None,
         }
     }
 
@@ -212,6 +222,12 @@ impl App {
                 EventHandler::handle_item_selection_screen_key(self, key).await
             }
             CurrentScreen::Help => EventHandler::handle_help_screen_key(self, key).await,
+            CurrentScreen::DeleteListConfirmation => {
+                EventHandler::handle_delete_list_confirmation_key(self, key).await
+            }
+            CurrentScreen::DeleteDatabaseConfirmation => {
+                EventHandler::handle_delete_database_confirmation_key(self, key).await
+            }
         }
     }
 
@@ -507,6 +523,23 @@ impl Widget for &mut App {
             }
             CurrentScreen::Help => {
                 HelpPopUp::render(area, buf, &self.theme);
+            }
+            CurrentScreen::DeleteListConfirmation => {
+                use crate::ui::components::popups::DeleteListConfirmationPopUp;
+                if let Some(ref list_name) = self.pending_delete_list_name {
+                    DeleteListConfirmationPopUp::render(lists_area, buf, &self.theme, list_name);
+                }
+            }
+            CurrentScreen::DeleteDatabaseConfirmation => {
+                use crate::ui::components::popups::DeleteDatabaseConfirmationPopUp;
+                if let Some(ref db_name) = self.pending_delete_db_name {
+                    DeleteDatabaseConfirmationPopUp::render(
+                        db_selector_area,
+                        buf,
+                        &self.theme,
+                        db_name,
+                    );
+                }
             }
             _ => {}
         }

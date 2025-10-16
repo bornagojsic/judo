@@ -377,20 +377,11 @@ pub struct DeleteListConfirmationPopUp;
 impl DeleteListConfirmationPopUp {
     pub fn render(area: Rect, buf: &mut Buffer, theme: &Theme, list_name: &str) {
         // Confirmation message
-        let confirmation_lines = vec![
-            Line::from(vec![
-                Span::raw("Are you sure you want to delete the list"),
-                Span::styled(list_name, Theme::fg(&theme.accent)),
-                Span::raw("?"),
-            ]),
-            Line::from(Span::raw("")),
-            Line::from(vec![
-                Span::styled("[Y/y]", Theme::fg(&theme.accent)),
-                Span::raw("es   "),
-                Span::styled("[N/n]", Theme::fg(&theme.accent)),
-                Span::raw("o"),
-            ]),
-        ];
+        let confirmation_lines = vec![Line::from(vec![
+            Span::raw("Are you sure you want to delete the list "),
+            Span::styled(list_name, Theme::fg(&theme.accent)),
+            Span::raw("?"),
+        ])];
 
         // Command hints for confirmation popup
         let command_hints = Line::from(vec![
@@ -431,6 +422,55 @@ impl DeleteListConfirmationPopUp {
             .padding(Padding::horizontal(1));
 
         // Render the confirmation text
+        Paragraph::new(confirmation_lines)
+            .wrap(Wrap { trim: false })
+            .block(popup_block)
+            .render(popup_area, buf);
+    }
+}
+
+pub struct DeleteDatabaseConfirmationPopUp;
+
+impl DeleteDatabaseConfirmationPopUp {
+    pub fn render(area: Rect, buf: &mut Buffer, theme: &Theme, db_name: &str) {
+        let confirmation_lines = vec![Line::from(vec![
+            Span::raw("Are you sure you want to delete the database "),
+            Span::styled(db_name, Theme::fg(&theme.accent)),
+            Span::raw("?"),
+        ])];
+
+        let command_hints = Line::from(vec![
+            Span::raw(" "),
+            Span::styled("[Y] Yes   [N] No", Theme::fg(&theme.accent)),
+            Span::raw(" "),
+        ]);
+
+        let popup_width = (area.width * 2) / 3;
+        let popup_height = confirmation_lines.len() as u16 + 4;
+        let popup_x = area.x + (area.width.saturating_sub(popup_width)) / 2;
+        let popup_y = area.y + (area.height.saturating_sub(popup_height)) / 2;
+        let popup_area = Rect {
+            x: popup_x,
+            y: popup_y,
+            width: popup_width,
+            height: popup_height,
+        };
+
+        Clear.render(popup_area, buf);
+        Block::default()
+            .style(Theme::bg(&theme.background))
+            .render(popup_area, buf);
+
+        let popup_block = Block::new()
+            .padding(Padding::new(2, 2, 1, 1))
+            .title(" Confirm Database Deletion ")
+            .title_style(Theme::fg(&theme.foreground))
+            .title_bottom(command_hints)
+            .borders(Borders::ALL)
+            .border_style(Theme::fg(&theme.border))
+            .border_type(BorderType::Rounded)
+            .padding(Padding::horizontal(1));
+
         Paragraph::new(confirmation_lines)
             .wrap(Wrap { trim: false })
             .block(popup_block)

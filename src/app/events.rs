@@ -93,14 +93,34 @@ impl EventHandler {
                 }
             }
             KeyCode::Char('d') => {
+                if let Some(selected_list) = app.lists_component.get_selected_list() {
+                    app.pending_delete_list_name = Some(selected_list.list.name.clone());
+                    app.current_screen = CurrentScreen::DeleteListConfirmation;
+                }
+            }
+            KeyCode::Esc => {
+                app.current_screen = CurrentScreen::ListSelection;
+            }
+            _ => {}
+        }
+    }
+
+    pub async fn handle_delete_list_confirmation_key(app: &mut App, key: KeyEvent) {
+        match key.code {
+            KeyCode::Char('y') | KeyCode::Char('Y') => {
+                // Actually delete the list
                 if let Err(e) =
                     ListsComponent::delete_selected_list_static(&mut app.lists_component, &app.pool)
                         .await
                 {
                     eprintln!("Failed to delete list: {}", e);
                 }
+                app.pending_delete_list_name = None;
+                app.current_screen = CurrentScreen::ListSelection;
             }
-            KeyCode::Esc => {
+            KeyCode::Char('n') | KeyCode::Char('N') | KeyCode::Esc => {
+                // Cancel deletion
+                app.pending_delete_list_name = None;
                 app.current_screen = CurrentScreen::ListSelection;
             }
             _ => {}
@@ -293,10 +313,41 @@ impl EventHandler {
             }
             KeyCode::Char('m') => app.enter_modify_db_screen(),
             KeyCode::Char('d') => {
-                // Delete selected database
+                let db_name = app
+                    .config
+                    .dbs
+                    .iter()
+                    .enumerate()
+                    .find(|(i, _db)| *i == app.selected_db_index)
+                    .map(|(_i, db)| db.name.clone());
+                app.pending_delete_db_name = Some(db_name.unwrap());
+                app.current_screen = CurrentScreen::DeleteDatabaseConfirmation;
+            }
+            _ => {}
+        }
+    }
+
+    pub async fn handle_delete_database_confirmation_key(app: &mut App, key: KeyEvent) {
+        match key.code {
+            KeyCode::Char('y') | KeyCode::Char('Y') => {
+                // Perform the deletion
                 if let Err(e) = app.delete_selected_db().await {
                     eprintln!("Failed to delete database: {}", e);
                 }
+                app.pending_delete_db_name = None;
+                app.current_screen = CurrentScreen::DBSelection;
+                let active = app.current_db_config.name.clone();
+                app.selected_db_index = app
+                    .config
+                    .dbs
+                    .iter()
+                    .position(|db| db.name == active)
+                    .unwrap_or(0);
+            }
+            KeyCode::Char('n') | KeyCode::Char('N') | KeyCode::Esc => {
+                // Cancel deletion
+                app.pending_delete_db_name = None;
+                app.current_screen = CurrentScreen::DBSelection;
             }
             _ => {}
         }

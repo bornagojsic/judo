@@ -66,7 +66,6 @@ impl DatabaseComponent {
             Span::styled("el", Theme::fg(&theme.foreground)),
             Span::styled(" [m]", Theme::fg(&theme.accent)),
             Span::styled("odify", Theme::fg(&theme.foreground)),
-            Span::styled(" [Esc]", Theme::fg(&theme.accent)),
             Span::raw(" "),
         ])
         .left_aligned();

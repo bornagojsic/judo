@@ -181,11 +181,11 @@ impl ListsComponent {
         let list_command_hints = Line::from(vec![
             Span::raw(" "),
             Span::styled(" ↓↑ ", Theme::fg(&theme.foreground)),
-            Span::styled("[A]", Theme::fg(&theme.accent)),
+            Span::styled("[a]", Theme::fg(&theme.accent)),
             Span::styled("dd", Theme::fg(&theme.foreground)),
-            Span::styled(" [D]", Theme::fg(&theme.accent)),
+            Span::styled(" [d]", Theme::fg(&theme.accent)),
             Span::styled("el", Theme::fg(&theme.foreground)),
-            Span::styled(" [M]", Theme::fg(&theme.accent)),
+            Span::styled(" [m]", Theme::fg(&theme.accent)),
             Span::styled("odify ", Theme::fg(&theme.foreground)),
             Span::raw(" "),
         ])

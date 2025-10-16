@@ -26,9 +26,22 @@ impl EventHandler {
             KeyCode::Char('3') => {
                 app.current_screen = CurrentScreen::DBSelection;
             }
+            KeyCode::Char('h') if key.modifiers.contains(KeyModifiers::CONTROL) => {
+                // KeyCode::Char('h') => {
+                app.current_screen = CurrentScreen::Help;
+            }
             _ => return false,
         }
         true
+    }
+
+    pub async fn handle_help_screen_key(app: &mut App, key: KeyEvent) {
+        match key.code {
+            KeyCode::Esc | KeyCode::Char('q') => {
+                app.current_screen = CurrentScreen::ListSelection;
+            }
+            _ => {}
+        }
     }
 
     /// Handle key press from user in list selection screen

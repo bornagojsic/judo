@@ -158,6 +158,9 @@ impl ItemsComponent {
         // Add "quit" hint, in the bottom right corner
         let quit_hint = Line::from(vec![
             Span::raw(" "),
+            Span::styled("[Ctrl + h]", Theme::fg(&theme.accent)),
+            Span::styled("elp ", Theme::fg(&theme.foreground)),
+            Span::raw(" "),
             Span::styled("[q]", Theme::fg(&theme.accent)),
             Span::styled("uit ", Theme::fg(&theme.foreground)),
             Span::raw(" "),

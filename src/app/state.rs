@@ -3,8 +3,8 @@ use crate::db::config::{Config, DBConfig};
 use crate::db::connections::init_db;
 use crate::db::models::{TodoList, UIList};
 use crate::ui::components::{
-    AddDBPopUp, AddItemPopUp, AddListPopUp, DatabaseComponent, InputState, ItemsComponent,
-    ListsComponent, Logo, ModifyDBPopUp, ModifyItemPopUp, ModifyListPopUp,
+    AddDBPopUp, AddItemPopUp, AddListPopUp, DatabaseComponent, HelpPopUp, InputState,
+    ItemsComponent, ListsComponent, Logo, ModifyDBPopUp, ModifyItemPopUp, ModifyListPopUp,
 };
 use crate::ui::cursor::CursorState;
 use crate::ui::layout::AppLayout;
@@ -20,6 +20,8 @@ use sqlx::SqlitePool;
 /// Enum representing the different screens in the application
 #[derive(Debug, Clone, PartialEq)]
 pub enum CurrentScreen {
+    /// scren for selecting a database
+    DBSelection,
     /// Screen for selecting a list
     ListSelection,
     /// Screen for selecting an item
@@ -32,12 +34,12 @@ pub enum CurrentScreen {
     AddItem,
     /// Pop-up screen for adding a new item
     ModifyItem,
-    /// Pop-up for changing database
-    DBSelection,
     /// Pop-up for adding a new database
     AddDB,
     /// Pop-up screen for modifying an existing database
     ModifyDB,
+    /// Screen for showing help
+    Help,
 }
 
 /// Main application state
@@ -209,6 +211,7 @@ impl App {
             CurrentScreen::ItemSelection => {
                 EventHandler::handle_item_selection_screen_key(self, key).await
             }
+            CurrentScreen::Help => EventHandler::handle_help_screen_key(self, key).await,
         }
     }
 
@@ -496,18 +499,14 @@ impl Widget for &mut App {
             CurrentScreen::ModifyItem => {
                 ModifyItemPopUp::render(&self.input_state, items_area, buf, &self.theme)
             }
-            // CurrentScreen::ChangeDB => ChangeDBPopUp::render(
-            //     &self.config,
-            //     self.selected_db_index,
-            //     db_selector_area,
-            //     buf,
-            //     &self.theme,
-            // ),
             CurrentScreen::AddDB => {
                 AddDBPopUp::render(&self.input_state, db_selector_area, buf, &self.theme)
             }
             CurrentScreen::ModifyDB => {
                 ModifyDBPopUp::render(&self.input_state, db_selector_area, buf, &self.theme)
+            }
+            CurrentScreen::Help => {
+                HelpPopUp::render(area, buf, &self.theme);
             }
             _ => {}
         }

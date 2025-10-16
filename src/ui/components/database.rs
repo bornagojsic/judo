@@ -4,6 +4,7 @@ use crate::ui::theme::Theme;
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Alignment, Rect};
 use ratatui::text::{Line, Span};
+use ratatui::widgets::HighlightSpacing;
 use ratatui::widgets::{
     Block, BorderType, Borders, List, ListItem, ListState, Padding, StatefulWidget,
 };
@@ -55,6 +56,10 @@ impl DatabaseComponent {
         selected: bool,
         active_db_index: Option<usize>,
     ) {
+        if self.list_state.selected() != active_db_index {
+            self.list_state.select(active_db_index);
+        }
+
         let command_hints = Line::from(vec![
             Span::raw(" "),
             Span::styled(" ↑↓ ", Theme::fg(&theme.foreground)),
@@ -94,21 +99,14 @@ impl DatabaseComponent {
         let items: Vec<ListItem> = config
             .dbs
             .iter()
-            .enumerate()
-            .map(|(i, db)| {
-                if Some(i) == active_db_index {
-                    ListItem::from(
-                        Line::from(vec![Span::raw(" ▸ "), Span::raw(&db.name)])
-                            .style(Theme::highlight(&theme, selected)),
-                    )
-                } else {
-                    // Normal DB: default color
-                    ListItem::from(Span::styled(db.name.clone(), Theme::fg(&theme.foreground)))
-                }
-            })
+            .map(|db| ListItem::from(Span::styled(db.name.clone(), Theme::fg(&theme.foreground))))
             .collect();
 
-        let list = List::new(items).block(block);
+        let list = List::new(items)
+            .block(block)
+            .highlight_symbol(" ▸ ")
+            .highlight_style(Theme::highlight(&theme, selected))
+            .highlight_spacing(HighlightSpacing::Always);
 
         StatefulWidget::render(list, area, buf, &mut self.list_state);
     }

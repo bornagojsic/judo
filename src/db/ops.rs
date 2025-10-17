@@ -196,8 +196,8 @@ impl TodoItem {
         let items = sqlx::query_as::<_, TodoItem>(
             r#"
             SELECT id, list_id, name, is_done, priority, due_date, ordering, created_at, updated_at
-            FROM todo_items 
-            WHERE list_id = ?1 
+            FROM todo_items
+            WHERE list_id = ?1
             ORDER BY ordering
             "#,
         )
@@ -214,8 +214,8 @@ impl TodoItem {
         let item = sqlx::query_as::<_, TodoItem>(
             r#"
             SELECT id, list_id, name, is_done, priority, due_date, ordering, created_at, updated_at
-            FROM todo_items 
-            WHERE id = ?1 
+            FROM todo_items
+            WHERE id = ?1
             "#,
         )
         .bind(id)
@@ -285,6 +285,33 @@ impl TodoItem {
         Ok(())
     }
 
+    /// Normalize ordering for all items in a list (make contiguous: 0, 1, 2, ...)
+    pub async fn normalize_ordering(pool: &SqlitePool, list_id: i64) -> Result<()> {
+        // Fetch all items for the list, ordered by current ordering
+        let items =
+            sqlx::query("SELECT * FROM todo_items WHERE list_id = ?1 ORDER BY ordering ASC")
+                .bind(list_id)
+                .fetch_all(pool)
+                .await
+                .with_context(|| "Failed to fetch todo items for normalization")?;
+
+        // Update ordering to be contiguous
+        use sqlx::Row;
+        for (i, item) in items.iter().enumerate() {
+            let id: i64 = item.get("id");
+            let ordering: i64 = item.get("ordering");
+            if ordering != i as i64 {
+                sqlx::query("UPDATE todo_items SET ordering = ?1 WHERE id = ?2")
+                    .bind(i as i64 + 1)
+                    .bind(id)
+                    .execute(pool)
+                    .await
+                    .with_context(|| format!("Failed to update ordering for item {}", id))?;
+            }
+        }
+        Ok(())
+    }
+
     /// Update item due date
     pub async fn update_due_date(
         &mut self,
@@ -313,6 +340,8 @@ impl TodoItem {
             .execute(pool)
             .await
             .with_context(|| "Failed to delete todo item")?;
+
+        TodoItem::normalize_ordering(pool, self.list_id).await?;
 
         Ok(())
     }

@@ -72,6 +72,14 @@ pub struct App {
     pub pending_delete_list_name: Option<String>,
     /// Pending delete database name
     pub pending_delete_db_name: Option<String>,
+    /// Flag to indicate if the application is awaiting user input
+    pub leader_awaiting: bool,
+    /// Modifier for number input like 3k or 15j
+    pub number_modifier: u16,
+    /// Buffer for keys pressed in the last 1000ms
+    pub keys_buffer: Vec<(String, bool)>,
+    /// Flag to indicate if the application is awaiting the second 'g' key press
+    pub awaiting_second_g: bool,
 }
 
 impl App {
@@ -121,7 +129,56 @@ impl App {
             theme,
             pending_delete_list_name: None,
             pending_delete_db_name: None,
+            leader_awaiting: false,
+            number_modifier: 0,
+            keys_buffer: Vec::new(),
+            awaiting_second_g: false,
         }
+    }
+
+    /// Add a key to the buffer and clean up old keys
+    pub fn add_key_to_buffer(&mut self, key: &String, visible: bool) {
+        if self.keys_buffer.len() > 0 {
+            if let Some((_, last_is_visible)) = self.keys_buffer.last() {
+                if *last_is_visible || !["k", "j", "K", "J"].contains(&key.as_str()) {
+                    self.keys_buffer = Vec::new();
+                }
+            }
+        }
+
+        self.keys_buffer.push((key.clone(), visible));
+    }
+
+    /// Reset the key buffer
+    pub fn reset_key_buffer(&mut self) {
+        self.keys_buffer = Vec::new();
+    }
+
+    /// Get keys pressed in the last 1000ms
+    pub fn recent_keys(&self) -> Vec<String> {
+        if self.keys_buffer.len() > 0 {
+            if let Some((_, visible)) = self.keys_buffer.last() {
+                if !visible {
+                    return Vec::new();
+                }
+            }
+        }
+        self.keys_buffer
+            .iter()
+            .map(|(key, _)| key.clone())
+            .collect()
+    }
+
+    pub fn reset_number_modifier(&mut self) {
+        self.number_modifier = 0;
+    }
+
+    pub fn add_number_modifier(&mut self, modifier: u16) {
+        if self.number_modifier > self.lists_component.lists.len() as u16 {
+            self.number_modifier = self.lists_component.lists.len() as u16;
+        }
+        self.number_modifier *= 10;
+        self.number_modifier += modifier;
     }
 
     /// Run the application
@@ -138,6 +195,7 @@ impl App {
                 self.handle_key_event(key).await;
             }
         }
+
         Ok(())
     }
 
@@ -492,13 +550,16 @@ impl Widget for &mut App {
         );
 
         // Render items with the selected list
+        let recent_keys_str = self.recent_keys().concat();
         let selected_list = self.lists_component.get_selected_list_mut();
+
         ItemsComponent::render(
             selected_list,
             items_area,
             buf,
             &self.theme,
             self.current_screen == CurrentScreen::ItemSelection,
+            recent_keys_str,
         );
 
         // Render popup screens if active

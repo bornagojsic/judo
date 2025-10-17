@@ -6,29 +6,100 @@ use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 pub struct EventHandler;
 
 impl EventHandler {
+    pub fn awaiting_leader_action(app: &mut App, key: KeyEvent) -> bool {
+        if app.leader_awaiting {
+            match key.code {
+                KeyCode::Char('q') => app.exit = true, // Quit application
+                KeyCode::Char('1') => {
+                    app.current_screen = CurrentScreen::ListSelection;
+                }
+                KeyCode::Char('2') => {
+                    app.current_screen = CurrentScreen::ItemSelection;
+                }
+                KeyCode::Char('3') => {
+                    app.current_screen = CurrentScreen::DBSelection;
+                }
+                KeyCode::Esc => {
+                    app.leader_awaiting = false;
+                    app.reset_key_buffer();
+                }
+                _ => {
+                    return true;
+                }
+            }
+            app.leader_awaiting = false;
+            return true;
+        }
+        false
+    }
+
     /// Handle key events that are screen-agnostic
     pub fn matches_global_keys(app: &mut App, key: KeyEvent) -> bool {
+        if EventHandler::awaiting_leader_action(app, key) {
+            return true;
+        }
+
+        if app.awaiting_second_g {
+            app.awaiting_second_g = false;
+            if key.code == KeyCode::Char('g') {
+                return false;
+            }
+        }
+
+        if key.modifiers.contains(KeyModifiers::CONTROL) && key.code == KeyCode::Char('h') {
+            app.add_key_to_buffer(&"Ctrl + h".to_string(), true);
+        } else {
+            let (key_str, visible) = match key.code {
+                KeyCode::Char(' ') => ("␣".to_string(), true),
+                KeyCode::Char(c) => {
+                    if c.is_ascii_digit() {
+                        (c.to_string(), false)
+                    } else {
+                        (c.to_string(), true)
+                    }
+                }
+                KeyCode::Up => ("↑".to_string(), true),
+                KeyCode::Down => ("↓".to_string(), true),
+                KeyCode::Left => ("←".to_string(), true),
+                KeyCode::Right => ("→".to_string(), true),
+                KeyCode::Tab => ("Tab".to_string(), true),
+                KeyCode::Enter => ("Enter".to_string(), true),
+                KeyCode::Esc => ("Esc".to_string(), true),
+                _ => (String::new(), false), // or whatever default you want
+            };
+
+            app.add_key_to_buffer(&key_str, visible);
+
+            if key_str == "g".to_string() && app.current_screen == CurrentScreen::ItemSelection {
+                app.awaiting_second_g = true;
+                return false;
+            }
+        }
+
         match key.code {
             KeyCode::Char('q') => app.exit = true, // Quit application
-            KeyCode::Char('1') => {
-                app.current_screen = CurrentScreen::ListSelection;
-                if app.lists_component.selected().is_none() && !app.lists_component.lists.is_empty()
-                {
-                    app.lists_component.list_state.select(Some(0));
-                }
-            }
-            KeyCode::Char('2') => {
-                app.current_screen = CurrentScreen::ItemSelection;
-                if let Some(selected_list) = app.lists_component.get_selected_list_mut() {
-                    ItemsComponent::select_first_item(selected_list);
-                }
-            }
-            KeyCode::Char('3') => {
-                app.current_screen = CurrentScreen::DBSelection;
-            }
             KeyCode::Char('h') if key.modifiers.contains(KeyModifiers::CONTROL) => {
-                // KeyCode::Char('h') => {
                 app.current_screen = CurrentScreen::Help;
+            }
+            KeyCode::Esc => {
+                if app.current_screen != CurrentScreen::Help {
+                    app.reset_number_modifier();
+                } else {
+                    return false;
+                }
+            }
+            KeyCode::Char(c) if c.is_ascii_digit() => {
+                let num = if c == '0' {
+                    0
+                } else {
+                    c.to_digit(10).unwrap() as u16
+                };
+                app.add_number_modifier(num);
+            }
+            KeyCode::Char(' ') => {
+                if app.number_modifier == 0 {
+                    app.leader_awaiting = true;
+                }
             }
             _ => return false,
         }
@@ -36,6 +107,10 @@ impl EventHandler {
     }
 
     pub async fn handle_help_screen_key(app: &mut App, key: KeyEvent) {
+        if EventHandler::matches_global_keys(app, key) {
+            return;
+        }
+
         match key.code {
             KeyCode::Esc | KeyCode::Char('q') => {
                 app.current_screen = CurrentScreen::ListSelection;
@@ -155,20 +230,45 @@ impl EventHandler {
                         eprintln!("Failed to move item down: {}", e);
                     }
                 }
+                KeyCode::Char('G') => {
+                    if let Some(selected_list) = app.lists_component.get_selected_list_mut() {
+                        ItemsComponent::select_last(selected_list);
+                    }
+                }
                 _ => {}
             }
             return;
         }
 
         match key.code {
+            KeyCode::Char('g') => {
+                if app.awaiting_second_g {
+                    return;
+                }
+                if let Some(selected_list) = app.lists_component.get_selected_list_mut() {
+                    ItemsComponent::select_first(selected_list);
+                }
+            }
             KeyCode::Down | KeyCode::Char('j') => {
                 if let Some(selected_list) = app.lists_component.get_selected_list_mut() {
-                    ItemsComponent::select_next_item(selected_list);
+                    match app.number_modifier {
+                        0 => ItemsComponent::select_next_item(selected_list),
+                        _ => {
+                            ItemsComponent::scroll_down_by(selected_list, app.number_modifier);
+                            app.reset_number_modifier();
+                        }
+                    }
                 }
             }
             KeyCode::Up | KeyCode::Char('k') => {
                 if let Some(selected_list) = app.lists_component.get_selected_list_mut() {
-                    ItemsComponent::select_previous_item(selected_list);
+                    match app.number_modifier {
+                        0 => ItemsComponent::select_previous_item(selected_list),
+                        _ => {
+                            ItemsComponent::scroll_up_by(selected_list, app.number_modifier);
+                            app.reset_number_modifier();
+                        }
+                    }
                 }
             }
             KeyCode::Left | KeyCode::Char('h') => {

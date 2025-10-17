@@ -13,6 +13,7 @@ pub struct Theme {
     pub border_accent: String,
     pub highlight_not_focused_fg: String,
     pub highlight_not_focused_bg: String,
+    pub highlight_line_number_fg: String,
 }
 
 impl Theme {
@@ -31,6 +32,7 @@ impl Theme {
             border_accent: "#FFA69E".to_string(),
             highlight_not_focused_fg: "#002626".to_string(),
             highlight_not_focused_bg: "#FCF1D5".to_string(),
+            highlight_line_number_fg: "#002626".to_string(),
         }
     }
 
@@ -57,5 +59,9 @@ impl Theme {
                 &self.highlight_not_focused_bg,
             )
         }
+    }
+
+    pub fn line_number(&self) -> Style {
+        Self::fg(&self.highlight_line_number_fg)
     }
 }

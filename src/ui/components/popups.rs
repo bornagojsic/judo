@@ -255,12 +255,12 @@ impl HelpPopUp {
                 Theme::fg(&theme.highlight_fg),
             )]),
             Line::from(vec![
-                Span::styled("    * ↑/k", Theme::fg(&theme.accent)),
-                Span::raw(" - Select the previous list/item/database"),
+                Span::styled("    * <count> ↑/k", Theme::fg(&theme.accent)),
+                Span::raw(" - Select the previous list/item/database (count is optional)"),
             ]),
             Line::from(vec![
-                Span::styled("    * ↓/j", Theme::fg(&theme.accent)),
-                Span::raw(" - Select the next list/item/database"),
+                Span::styled("    * <count> ↓/j", Theme::fg(&theme.accent)),
+                Span::raw(" - Select the next list/item/database (count is optional)"),
             ]),
             Line::from(vec![
                 Span::styled("    * SHIFT + ↑/k", Theme::fg(&theme.accent)),
@@ -278,7 +278,7 @@ impl HelpPopUp {
 
         let list_selection_help_lines = vec![
             Line::from(vec![
-                Span::styled("  1", Theme::fg(&theme.accent)),
+                Span::styled("  SPACE + 1", Theme::fg(&theme.accent)),
                 Span::raw(" - Go to "),
                 Span::styled("List Selection", Theme::fg(&theme.highlight_fg)),
             ]),
@@ -290,7 +290,7 @@ impl HelpPopUp {
 
         let item_selection_help_lines = vec![
             Line::from(vec![
-                Span::styled("  2", Theme::fg(&theme.accent)),
+                Span::styled("  SPACE + 2", Theme::fg(&theme.accent)),
                 Span::raw(" - Go to "),
                 Span::styled("Item Selection", Theme::fg(&theme.highlight_fg)),
             ]),
@@ -302,11 +302,19 @@ impl HelpPopUp {
                 Span::styled("    * ←/h", Theme::fg(&theme.accent)),
                 Span::raw(" - Go to List Selection"),
             ]),
+            Line::from(vec![
+                Span::styled("    * g g", Theme::fg(&theme.accent)),
+                Span::raw(" - Go to the first item"),
+            ]),
+            Line::from(vec![
+                Span::styled("    * G", Theme::fg(&theme.accent)),
+                Span::raw(" - Go to the last item"),
+            ]),
         ];
 
         let db_selection_help_lines = vec![
             Line::from(vec![
-                Span::styled("  3", Theme::fg(&theme.accent)),
+                Span::styled("  SPACE + 3", Theme::fg(&theme.accent)),
                 Span::raw(" - Go to "),
                 Span::styled("Database Selection", Theme::fg(&theme.highlight_fg)),
             ]),

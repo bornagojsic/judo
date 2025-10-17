@@ -78,7 +78,7 @@ impl DatabaseComponent {
 
         let title_line = Line::from(vec![
             Span::raw("  D A T A B A S E "),
-            Span::styled("[3]  ", Theme::fg(&theme.accent)),
+            Span::styled("[SPACE + 3]  ", Theme::fg(&theme.accent)),
         ])
         .left_aligned();
 

@@ -15,14 +15,43 @@ pub struct ItemsComponent;
 
 impl ItemsComponent {
     /// Apply styling to a todo item based on its completion status
-    fn style_item(ui_item: &UIItem) -> Span<'_> {
+    fn style_item(ui_item: &UIItem, selected_index: i32, theme: Theme) -> Line<'_> {
         let name = ui_item.item.name.clone();
 
-        if ui_item.item.is_done {
-            // Strike through completed items
-            Span::styled(name, Style::default().add_modifier(Modifier::CROSSED_OUT))
+        let item_index = ui_item.item.ordering as i32 - 1;
+
+        fn get_rel_index(current_index: i32, selected_index: i32) -> String {
+            if current_index == selected_index {
+                format!("{}  ", current_index + 1)
+            } else {
+                format!("{}  ", (current_index - selected_index).abs())
+            }
+        }
+
+        let rel_index = get_rel_index(item_index, selected_index);
+
+        let rel_num_span = if item_index - selected_index == 0 {
+            Span::styled(rel_index, Theme::line_number(&theme))
         } else {
-            Span::from(name)
+            Span::from(rel_index)
+        };
+
+        // fn get_rel_index(current_index: i32, selected_index: i32) -> String {
+        //         "".to_string()
+        //     } else {
+        //         (current_index - selected_index).abs().to_string()
+        //     }
+        // }
+
+        // let rel_index = get_rel_index(item_index, selected_index);
+
+        if ui_item.item.is_done {
+            Line::from(vec![
+                rel_num_span,
+                Span::styled(name, Style::default().add_modifier(Modifier::CROSSED_OUT)),
+            ])
+        } else {
+            Line::from(vec![rel_num_span, Span::from(name)])
         }
     }
 
@@ -31,9 +60,19 @@ impl ItemsComponent {
         ui_list.item_state.select_next();
     }
 
+    /// Select next element in the list of to-do items by a specified amount
+    pub fn scroll_down_by(ui_list: &mut UIList, amount: u16) {
+        ui_list.item_state.scroll_down_by(amount);
+    }
+
     /// Select previous element in the list of to-do items
     pub fn select_previous_item(ui_list: &mut UIList) {
         ui_list.item_state.select_previous();
+    }
+
+    /// Select previous element in the list of to-do items by a specified amount
+    pub fn scroll_up_by(ui_list: &mut UIList, amount: u16) {
+        ui_list.item_state.scroll_up_by(amount);
     }
 
     /// Remove item selection (deselect current item)
@@ -41,10 +80,25 @@ impl ItemsComponent {
         ui_list.item_state.select(None);
     }
 
+    pub fn select_first(ui_list: &mut UIList) {
+        ui_list.item_state.select_first();
+    }
+
+    pub fn select_last(ui_list: &mut UIList) {
+        ui_list.item_state.select_last();
+    }
+
     /// Select the first item in the list
     pub fn select_first_item(ui_list: &mut UIList) {
         if ui_list.item_state.selected().is_none() {
             ui_list.item_state.select_first();
+        }
+    }
+
+    /// Select the last item in the list
+    pub fn select_last_item(ui_list: &mut UIList) {
+        if ui_list.item_state.selected().is_none() {
+            ui_list.item_state.select_last();
         }
     }
 
@@ -142,6 +196,7 @@ impl ItemsComponent {
         buf: &mut Buffer,
         theme: &Theme,
         selected: bool,
+        recent_keys_str: String,
     ) {
         // Command hints for items
         let list_command_hints = Line::from(vec![
@@ -160,6 +215,8 @@ impl ItemsComponent {
         // Add "quit" hint, in the bottom right corner
         let quit_hint = Line::from(vec![
             Span::raw(" "),
+            Span::raw(recent_keys_str),
+            Span::raw(" "),
             Span::styled("[Ctrl + h]", Theme::fg(&theme.accent)),
             Span::styled("elp ", Theme::fg(&theme.foreground)),
             Span::raw(" "),
@@ -171,7 +228,7 @@ impl ItemsComponent {
 
         let title_line = Line::from(vec![
             Span::raw("  I T E M S "),
-            Span::styled("[2]  ", Theme::fg(&theme.accent)),
+            Span::styled("[SPACE + 2]  ", Theme::fg(&theme.accent)),
         ])
         .left_aligned();
 
@@ -195,25 +252,92 @@ impl ItemsComponent {
         let width = inner.width as usize;
 
         if let Some(ui_list) = selected_list {
+            if ui_list.items.is_empty() {
+                // Render an empty block or a message
+                block.render(area, buf);
+                return;
+            }
+
+            let selected_index: i32 = match ui_list.item_state.selected() {
+                Some(idx) => {
+                    if idx < ui_list.items.len() {
+                        idx as i32
+                    } else {
+                        (idx - 1) as i32
+                    }
+                }
+                None => -1,
+            };
+
+            let max_index = ui_list.items.len();
+
+            let max_index_digits = max_index.to_string().len();
+
             // Extract the corresponding items with styling
             let items: Vec<ListItem> = ui_list
                 .items
                 .iter()
                 .map(|ui_item| {
-                    let styled = Self::style_item(ui_item);
-                    let wrapped_lines = wrap(&styled.content, width);
-                    let lines: Vec<Line> = wrapped_lines
-                        .into_iter()
-                        .map(|w| Line::from(Span::styled(w.to_string(), styled.style)))
-                        .collect();
+                    let styled_line = Self::style_item(ui_item, selected_index, theme.to_owned());
+
+                    // Assume styled_line.spans[0] and styled_line.spans[1] exist
+                    let padding = "   "; // 3 spaces, adjust as needed
+
+                    // Wrap each span individually
+                    let wrapped_line_number = wrap(
+                        &styled_line.spans[0].content,
+                        width.saturating_sub(max_index_digits + 5),
+                    );
+                    let wrapped_item = wrap(
+                        &styled_line.spans[1].content,
+                        width.saturating_sub(max_index_digits + 5),
+                    );
+
+                    // Find the max number of lines
+                    let max_lines = std::cmp::max(wrapped_line_number.len(), wrapped_item.len());
+
+                    let mut lines: Vec<Line> = Vec::with_capacity(max_lines);
+
+                    let newline_symbol = "↪ ";
+
+                    for i in 0..max_lines {
+                        let mut line_spans = Vec::new();
+
+                        // First span (with style)
+                        if let Some(w) = wrapped_line_number.get(i) {
+                            let line_number_padding =
+                                " ".repeat(max_index_digits.saturating_sub(w.len()));
+                            line_spans.push(Span::styled(
+                                line_number_padding.to_string() + w,
+                                styled_line.spans[0].style,
+                            ));
+                        }
+
+                        // Padding span
+                        line_spans.push(Span::raw(padding));
+
+                        // Second span (with style)
+                        if let Some(w) = wrapped_item.get(i) {
+                            if i > 0 {
+                                line_spans.push(Span::styled(
+                                    newline_symbol,
+                                    Theme::color_from_hex("#565f89"),
+                                ));
+                            }
+                            line_spans
+                                .push(Span::styled(w.to_string(), styled_line.spans[1].style));
+                        }
+
+                        lines.push(Line::from(line_spans));
+                    }
+
                     ListItem::from(lines)
                 })
                 .collect();
 
             let list: List = List::new(items)
                 .block(block)
-                .highlight_symbol(" ▸ ")
-                .highlight_style(Theme::highlight(&theme, selected))
+                .highlight_style(Theme::bg(&theme.highlight_bg))
                 .highlight_spacing(HighlightSpacing::Always);
 
             StatefulWidget::render(list, area, buf, &mut ui_list.item_state);

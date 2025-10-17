@@ -194,7 +194,7 @@ impl ListsComponent {
 
         let title_line = Line::from(vec![
             Span::raw("  L I S T S "),
-            Span::styled("[1]  ", Theme::fg(&theme.accent)),
+            Span::styled("[SPACE + 1]  ", Theme::fg(&theme.accent)),
         ])
         .left_aligned();
 

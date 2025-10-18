@@ -380,6 +380,56 @@ impl TodoItem {
         Ok(())
     }
 
+    pub async fn move_up_by(&mut self, pool: &SqlitePool, amount: usize) -> Result<()> {
+        if amount <= 0 {
+            return Ok(()); // nothing to do
+        }
+
+        // 1. Find the `amount`-th item above this one, by ordering
+        let target_item: Option<(i64, i64)> = sqlx::query_as(
+            "SELECT id, ordering FROM todo_items
+             WHERE list_id = ?1 AND ordering < ?2
+             ORDER BY ordering DESC
+             LIMIT 1 OFFSET ?3",
+        )
+        .bind(self.list_id)
+        .bind(self.ordering)
+        .bind((amount as i64 - 1).max(0)) // OFFSET is zero-based
+        .fetch_optional(pool)
+        .await
+        .with_context(|| "Failed to find target item above")?;
+
+        if let Some((_target_id, target_ordering)) = target_item {
+            // 2. Shift all items between target_ordering and self.ordering upward by 1
+            sqlx::query(
+                "UPDATE todo_items
+                 SET ordering = ordering + 1
+                 WHERE list_id = ?1
+                   AND ordering >= ?2
+                   AND ordering < ?3",
+            )
+            .bind(self.list_id)
+            .bind(target_ordering)
+            .bind(self.ordering)
+            .execute(pool)
+            .await
+            .with_context(|| "Failed to shift intermediate items")?;
+
+            // 3. Move current item into the freed spot
+            sqlx::query("UPDATE todo_items SET ordering = ?1 WHERE id = ?2")
+                .bind(target_ordering)
+                .bind(self.id)
+                .execute(pool)
+                .await
+                .with_context(|| "Failed to update current item ordering")?;
+
+            // 4. Update self
+            self.ordering = target_ordering;
+        }
+
+        Ok(())
+    }
+
     /// Move item down (increase ordering, swap with next in same list)
     pub async fn move_down(&mut self, pool: &SqlitePool) -> Result<()> {
         // Find the item with the next higher ordering value in the same list
@@ -409,6 +459,56 @@ impl TodoItem {
                 .with_context(|| "Failed to update current item ordering")?;
 
             self.ordering = next_ordering;
+        }
+
+        Ok(())
+    }
+
+    pub async fn move_down_by(&mut self, pool: &SqlitePool, amount: usize) -> Result<()> {
+        if amount <= 0 {
+            return Ok(()); // nothing to do
+        }
+
+        // 1. Find the `amount`-th item below this one, by ordering
+        let target_item: Option<(i64, i64)> = sqlx::query_as(
+            "SELECT id, ordering FROM todo_items
+             WHERE list_id = ?1 AND ordering > ?2
+             ORDER BY ordering ASC
+             LIMIT 1 OFFSET ?3",
+        )
+        .bind(self.list_id)
+        .bind(self.ordering)
+        .bind((amount as i64 - 1).max(0)) // OFFSET is zero-based
+        .fetch_optional(pool)
+        .await
+        .with_context(|| "Failed to find target item below")?;
+
+        if let Some((_target_id, target_ordering)) = target_item {
+            // 2. Shift all items between self.ordering and target_ordering downward by 1
+            sqlx::query(
+                "UPDATE todo_items
+                 SET ordering = ordering - 1
+                 WHERE list_id = ?1
+                   AND ordering <= ?2
+                   AND ordering > ?3",
+            )
+            .bind(self.list_id)
+            .bind(target_ordering)
+            .bind(self.ordering)
+            .execute(pool)
+            .await
+            .with_context(|| "Failed to shift intermediate items")?;
+
+            // 3. Move current item into the freed spot
+            sqlx::query("UPDATE todo_items SET ordering = ?1 WHERE id = ?2")
+                .bind(target_ordering)
+                .bind(self.id)
+                .execute(pool)
+                .await
+                .with_context(|| "Failed to update current item ordering")?;
+
+            // 4. Update struct field
+            self.ordering = target_ordering;
         }
 
         Ok(())

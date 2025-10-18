@@ -35,16 +35,23 @@ impl EventHandler {
 
     /// Handle key events that are screen-agnostic
     pub fn matches_global_keys(app: &mut App, key: KeyEvent) -> bool {
+        let main_screens = vec![
+            CurrentScreen::ListSelection,
+            CurrentScreen::ItemSelection,
+            CurrentScreen::DBSelection,
+        ];
+
         if app.awaiting_second_g {
             app.awaiting_second_g = false;
             if key.code == KeyCode::Char('g') {
+                app.keys_buffer.push(("g".to_string(), false));
                 return false;
             }
         }
 
-        let (keycode_string, visible) = EventHandler::format_keycode_for_buffer(key);
+        let (keycode_string, isnt_digit) = EventHandler::format_keycode_for_buffer(key);
 
-        app.add_key_to_buffer(&keycode_string, visible);
+        app.add_key_to_buffer(&keycode_string, !isnt_digit);
 
         if key.code == KeyCode::Char('g') && app.current_screen == CurrentScreen::ItemSelection {
             app.awaiting_second_g = true;
@@ -57,17 +64,16 @@ impl EventHandler {
                 app.current_screen = CurrentScreen::Help;
             }
             KeyCode::Esc => {
-                if app.current_screen != CurrentScreen::Help {
-                    app.reset_number_modifier();
-                } else {
+                if !main_screens.contains(&app.current_screen) {
                     return false;
                 }
+                app.reset_number_modifier();
             }
             KeyCode::Char(c) if c.is_ascii_digit() => {
                 let num = if c == '0' {
                     0
                 } else {
-                    c.to_digit(10).unwrap() as u16
+                    c.to_digit(10).unwrap() as usize
                 };
                 app.add_number_modifier(num);
             }
@@ -203,24 +209,40 @@ impl EventHandler {
         let modifier_shift = key.modifiers.contains(KeyModifiers::SHIFT);
 
         if modifier_shift {
+            let amount = if app.number_modifier == 0 {
+                1
+            } else {
+                app.number_modifier as usize
+            };
+
             match key.code {
                 KeyCode::Up | KeyCode::Char('K') => {
                     // Ctrl+Up: Move selected item up
                     if let Some(selected_list) = app.lists_component.get_selected_list_mut()
-                        && let Err(e) =
-                            ItemsComponent::move_selected_item_up(selected_list, &app.pool).await
+                        && let Err(e) = ItemsComponent::move_selected_item_up_by(
+                            selected_list,
+                            &app.pool,
+                            amount,
+                        )
+                        .await
                     {
                         eprintln!("Failed to move item up: {}", e);
                     }
+                    app.reset_number_modifier();
                 }
                 KeyCode::Down | KeyCode::Char('J') => {
                     // Ctrl+Down: Move selected item down
                     if let Some(selected_list) = app.lists_component.get_selected_list_mut()
-                        && let Err(e) =
-                            ItemsComponent::move_selected_item_down(selected_list, &app.pool).await
+                        && let Err(e) = ItemsComponent::move_selected_item_down_by(
+                            selected_list,
+                            &app.pool,
+                            amount,
+                        )
+                        .await
                     {
                         eprintln!("Failed to move item down: {}", e);
                     }
+                    app.reset_number_modifier();
                 }
                 KeyCode::Char('G') => {
                     if let Some(selected_list) = app.lists_component.get_selected_list_mut() {

@@ -78,7 +78,7 @@ pub struct App {
     /// Flag to indicate if the application is awaiting user input
     pub leader_awaiting: bool,
     /// Modifier for number input like 3k or 15j
-    pub number_modifier: u16,
+    pub number_modifier: usize,
     /// Buffer for keys pressed in the last 1000ms
     pub keys_buffer: Vec<(String, bool)>,
     /// Flag to indicate if the application is awaiting the second 'g' key press
@@ -140,16 +140,22 @@ impl App {
     }
 
     /// Add a key to the buffer and clean up old keys
-    pub fn add_key_to_buffer(&mut self, key: &String, visible: bool) {
+    pub fn add_key_to_buffer(&mut self, key: &String, is_digit: bool) {
         if self.keys_buffer.len() > 0 {
-            if let Some((_, last_is_visible)) = self.keys_buffer.last() {
-                if *last_is_visible || !["k", "j", "K", "J"].contains(&key.as_str()) {
-                    self.keys_buffer = Vec::new();
+            if let Some((_, last_is_digit)) = self.keys_buffer.last() {
+                if !*last_is_digit || (!["k", "j", "K", "J"].contains(&key.as_str()) && !is_digit) {
+                    self.reset_key_buffer();
                 }
             }
         }
 
-        self.keys_buffer.push((key.clone(), visible));
+        let recent = self.recent_keys();
+        if recent.len() > 5 && is_digit {
+            self.reset_key_buffer();
+            self.reset_number_modifier();
+        }
+
+        self.keys_buffer.push((key.clone(), is_digit));
     }
 
     /// Reset the key buffer
@@ -159,13 +165,6 @@ impl App {
 
     /// Get keys pressed in the last 1000ms
     pub fn recent_keys(&self) -> Vec<String> {
-        if self.keys_buffer.len() > 0 {
-            if let Some((_, visible)) = self.keys_buffer.last() {
-                if !visible {
-                    return Vec::new();
-                }
-            }
-        }
         self.keys_buffer
             .iter()
             .map(|(key, _)| key.clone())
@@ -176,9 +175,9 @@ impl App {
         self.number_modifier = 0;
     }
 
-    pub fn add_number_modifier(&mut self, modifier: u16) {
-        if self.number_modifier > self.lists_component.lists.len() as u16 {
-            self.number_modifier = self.lists_component.lists.len() as u16;
+    pub fn add_number_modifier(&mut self, modifier: usize) {
+        if self.number_modifier > self.lists_component.lists.len() {
+            self.number_modifier = self.lists_component.lists.len();
         }
         self.number_modifier *= 10;
         self.number_modifier += modifier;

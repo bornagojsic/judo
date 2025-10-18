@@ -4,7 +4,8 @@ use crate::db::connections::init_db;
 use crate::db::models::{TodoList, UIList};
 use crate::ui::components::{
     AddDBPopUp, AddItemPopUp, AddListPopUp, DatabaseComponent, HelpPopUp, InputState,
-    ItemsComponent, ListsComponent, Logo, ModifyDBPopUp, ModifyItemPopUp, ModifyListPopUp,
+    ItemsComponent, LeaderHelpPopUp, ListsComponent, Logo, ModifyDBPopUp, ModifyItemPopUp,
+    ModifyListPopUp,
 };
 use crate::ui::cursor::CursorState;
 use crate::ui::layout::AppLayout;
@@ -40,6 +41,8 @@ pub enum CurrentScreen {
     ModifyDB,
     /// Screen for showing help
     Help,
+    /// Screen for showing leader help
+    LeaderHelp,
     /// Pop-up screen for deleting a list
     DeleteListConfirmation,
     /// Pop-up screen for deleting a database
@@ -280,6 +283,9 @@ impl App {
                 EventHandler::handle_item_selection_screen_key(self, key).await
             }
             CurrentScreen::Help => EventHandler::handle_help_screen_key(self, key).await,
+            CurrentScreen::LeaderHelp => {
+                EventHandler::handle_leader_help_screen_key(self, key).await
+            }
             CurrentScreen::DeleteListConfirmation => {
                 EventHandler::handle_delete_list_confirmation_key(self, key).await
             }
@@ -584,6 +590,9 @@ impl Widget for &mut App {
             }
             CurrentScreen::Help => {
                 HelpPopUp::render(area, buf, &self.theme);
+            }
+            CurrentScreen::LeaderHelp => {
+                LeaderHelpPopUp::render(area, buf, &self.theme);
             }
             CurrentScreen::DeleteListConfirmation => {
                 use crate::ui::components::popups::DeleteListConfirmationPopUp;

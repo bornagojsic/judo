@@ -6,39 +6,35 @@ use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 pub struct EventHandler;
 
 impl EventHandler {
-    pub fn awaiting_leader_action(app: &mut App, key: KeyEvent) -> bool {
-        if app.leader_awaiting {
-            match key.code {
-                KeyCode::Char('q') => app.exit = true, // Quit application
-                KeyCode::Char('1') => {
-                    app.current_screen = CurrentScreen::ListSelection;
-                }
-                KeyCode::Char('2') => {
-                    app.current_screen = CurrentScreen::ItemSelection;
-                }
-                KeyCode::Char('3') => {
-                    app.current_screen = CurrentScreen::DBSelection;
-                }
-                KeyCode::Esc => {
-                    app.leader_awaiting = false;
-                    app.reset_key_buffer();
-                }
-                _ => {
-                    return true;
+    pub fn format_keycode_for_buffer(key: KeyEvent) -> (String, bool) {
+        if key.modifiers.contains(KeyModifiers::CONTROL) && key.code == KeyCode::Char('h') {
+            return ("Ctrl + h".to_string(), true);
+        }
+
+        let (key_str, visible) = match key.code {
+            KeyCode::Char(' ') => ("␣".to_string(), true),
+            KeyCode::Char(c) => {
+                if c.is_ascii_digit() {
+                    (c.to_string(), false)
+                } else {
+                    (c.to_string(), true)
                 }
             }
-            app.leader_awaiting = false;
-            return true;
-        }
-        false
+            KeyCode::Up => ("↑".to_string(), true),
+            KeyCode::Down => ("↓".to_string(), true),
+            KeyCode::Left => ("←".to_string(), true),
+            KeyCode::Right => ("→".to_string(), true),
+            KeyCode::Tab => ("Tab".to_string(), true),
+            KeyCode::Enter => ("Enter".to_string(), true),
+            KeyCode::Esc => ("Esc".to_string(), true),
+            _ => (String::new(), false), // or whatever default you want
+        };
+
+        (key_str, visible)
     }
 
     /// Handle key events that are screen-agnostic
     pub fn matches_global_keys(app: &mut App, key: KeyEvent) -> bool {
-        if EventHandler::awaiting_leader_action(app, key) {
-            return true;
-        }
-
         if app.awaiting_second_g {
             app.awaiting_second_g = false;
             if key.code == KeyCode::Char('g') {
@@ -46,34 +42,13 @@ impl EventHandler {
             }
         }
 
-        if key.modifiers.contains(KeyModifiers::CONTROL) && key.code == KeyCode::Char('h') {
-            app.add_key_to_buffer(&"Ctrl + h".to_string(), true);
-        } else {
-            let (key_str, visible) = match key.code {
-                KeyCode::Char(' ') => ("␣".to_string(), true),
-                KeyCode::Char(c) => {
-                    if c.is_ascii_digit() {
-                        (c.to_string(), false)
-                    } else {
-                        (c.to_string(), true)
-                    }
-                }
-                KeyCode::Up => ("↑".to_string(), true),
-                KeyCode::Down => ("↓".to_string(), true),
-                KeyCode::Left => ("←".to_string(), true),
-                KeyCode::Right => ("→".to_string(), true),
-                KeyCode::Tab => ("Tab".to_string(), true),
-                KeyCode::Enter => ("Enter".to_string(), true),
-                KeyCode::Esc => ("Esc".to_string(), true),
-                _ => (String::new(), false), // or whatever default you want
-            };
+        let (keycode_string, visible) = EventHandler::format_keycode_for_buffer(key);
 
-            app.add_key_to_buffer(&key_str, visible);
+        app.add_key_to_buffer(&keycode_string, visible);
 
-            if key_str == "g".to_string() && app.current_screen == CurrentScreen::ItemSelection {
-                app.awaiting_second_g = true;
-                return false;
-            }
+        if key.code == KeyCode::Char('g') && app.current_screen == CurrentScreen::ItemSelection {
+            app.awaiting_second_g = true;
+            return false;
         }
 
         match key.code {
@@ -98,12 +73,29 @@ impl EventHandler {
             }
             KeyCode::Char(' ') => {
                 if app.number_modifier == 0 {
+                    // TODO: Remove after implementing leader help screen
                     app.leader_awaiting = true;
+                    app.current_screen = CurrentScreen::LeaderHelp;
                 }
             }
             _ => return false,
         }
         true
+    }
+
+    pub async fn handle_leader_help_screen_key(app: &mut App, key: KeyEvent) {
+        app.leader_awaiting = false;
+        match key.code {
+            KeyCode::Char('q') => app.exit = true, // Quit application
+            KeyCode::Char('1') => app.current_screen = CurrentScreen::ListSelection,
+            KeyCode::Char('2') => app.current_screen = CurrentScreen::ItemSelection,
+            KeyCode::Char('3') => app.current_screen = CurrentScreen::DBSelection,
+            KeyCode::Esc => {
+                app.current_screen = CurrentScreen::ListSelection;
+                app.reset_key_buffer();
+            }
+            _ => app.leader_awaiting = true,
+        }
     }
 
     pub async fn handle_help_screen_key(app: &mut App, key: KeyEvent) {

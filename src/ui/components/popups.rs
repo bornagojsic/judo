@@ -380,6 +380,77 @@ impl HelpPopUp {
     }
 }
 
+pub struct LeaderHelpPopUp;
+
+impl LeaderHelpPopUp {
+    /// Render popup for displaying help information
+    pub fn render(area: Rect, buf: &mut Buffer, theme: &Theme) {
+        // Help text lines
+        let help_lines = vec![
+            Line::from(vec![
+                Span::styled("1", Theme::fg(&theme.accent)),
+                Span::raw(" → Go to "),
+                Span::styled("List Selection", Theme::fg(&theme.highlight_fg)),
+            ]),
+            Line::from(vec![
+                Span::styled("2", Theme::fg(&theme.accent)),
+                Span::raw(" → Go to "),
+                Span::styled("Item Selection", Theme::fg(&theme.highlight_fg)),
+            ]),
+            Line::from(vec![
+                Span::styled("3", Theme::fg(&theme.accent)),
+                Span::raw(" → Go to "),
+                Span::styled("Database Selection", Theme::fg(&theme.highlight_fg)),
+            ]),
+        ];
+
+        // Calculate popup dimensions
+        let popup_width = 35; // 66% of the area width
+        let popup_height = help_lines.len() as u16 + 4; // Enough for all help lines + padding
+
+        // Center horizontally within the area
+        let popup_x = area.x + area.width.saturating_sub(popup_width) - 3;
+
+        // Center vertically within the area
+        let popup_y = area.y + area.height.saturating_sub(popup_height) - 3;
+
+        // Define the pop-up area
+        let popup_area = Rect {
+            x: popup_x,
+            y: popup_y,
+            width: popup_width,
+            height: popup_height,
+        };
+
+        // Clear the background of the popup area first
+        Clear.render(popup_area, buf);
+        Block::default()
+            .style(Theme::bg(&theme.background))
+            .render(popup_area, buf);
+
+        let title_span = Span::styled(" ␣ ", Theme::fg(&theme.highlight_line_number_fg));
+
+        let bottom_title = Line::from(vec![
+            Span::styled(" [Esc]", Theme::fg(&theme.accent)),
+            Span::from(" → Close "),
+        ]);
+
+        // Define the popup block with styling
+        let popup_block = Block::new()
+            .padding(Padding::new(2, 2, 1, 1))
+            .title(title_span)
+            .title_bottom(bottom_title)
+            .borders(Borders::ALL)
+            .border_style(Theme::fg(&theme.border))
+            .border_type(BorderType::Rounded);
+
+        // Render the help text
+        Paragraph::new(help_lines)
+            .block(popup_block)
+            .render(popup_area, buf);
+    }
+}
+
 pub struct DeleteListConfirmationPopUp;
 
 impl DeleteListConfirmationPopUp {

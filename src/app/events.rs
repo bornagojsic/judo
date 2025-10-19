@@ -289,21 +289,35 @@ impl EventHandler {
             }
             KeyCode::Down | KeyCode::Char('j') => {
                 if let Some(selected_list) = app.lists_component.get_selected_list_mut() {
-                    match app.number_modifier {
+                    match app.number_modifier.clone() {
                         0 => ItemsComponent::select_next_item(selected_list),
                         _ => {
-                            ItemsComponent::scroll_down_by(selected_list, app.number_modifier);
-                            app.reset_number_modifier();
+                            let total_items = selected_list.clone().items.len();
+                            if let Some(current_index) = selected_list.clone().item_state.selected()
+                            {
+                                let amount = if current_index + app.number_modifier > total_items {
+                                    total_items - current_index
+                                } else {
+                                    app.number_modifier
+                                };
+                                ItemsComponent::scroll_down_by(selected_list, amount);
+                                app.reset_number_modifier();
+                            }
                         }
                     }
                 }
             }
             KeyCode::Up | KeyCode::Char('k') => {
                 if let Some(selected_list) = app.lists_component.get_selected_list_mut() {
-                    match app.number_modifier {
+                    match app.number_modifier.clone() {
                         0 => ItemsComponent::select_previous_item(selected_list),
                         _ => {
-                            ItemsComponent::scroll_up_by(selected_list, app.number_modifier);
+                            let amount = if app.number_modifier > selected_list.items.len() {
+                                selected_list.items.len()
+                            } else {
+                                app.number_modifier
+                            };
+                            ItemsComponent::scroll_up_by(selected_list, amount);
                             app.reset_number_modifier();
                         }
                     }

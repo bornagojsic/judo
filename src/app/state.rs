@@ -83,6 +83,8 @@ pub struct App {
     pub keys_buffer: Vec<(String, bool)>,
     /// Flag to indicate if the application is awaiting the second 'g' key press
     pub awaiting_second_g: bool,
+    /// The last active screen
+    pub last_active_screen: CurrentScreen,
 }
 
 impl App {
@@ -105,6 +107,7 @@ impl App {
 
         // Start from main screen
         let current_screen = CurrentScreen::ListSelection;
+        let last_active_screen = CurrentScreen::ListSelection;
 
         // Create lists component and load data
         let mut lists_component = ListsComponent::new();
@@ -136,7 +139,13 @@ impl App {
             number_modifier: 0,
             keys_buffer: Vec::new(),
             awaiting_second_g: false,
+            last_active_screen,
         }
+    }
+
+    /// Go back to the last active screen
+    pub fn go_back(&mut self) {
+        self.current_screen = self.last_active_screen.clone();
     }
 
     /// Add a key to the buffer and clean up old keys
@@ -180,7 +189,7 @@ impl App {
             self.number_modifier = self.lists_component.lists.len();
         }
         self.number_modifier *= 10;
-        self.number_modifier += modifier;
+        self.number_modifier += modifier.clone();
     }
 
     /// Run the application

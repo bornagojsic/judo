@@ -25,6 +25,7 @@ impl EventHandler {
             KeyCode::Left => ("←".to_string(), true),
             KeyCode::Right => ("→".to_string(), true),
             KeyCode::Tab => ("Tab".to_string(), true),
+            KeyCode::BackTab => ("Shift + Tab".to_string(), true),
             KeyCode::Enter => ("Enter".to_string(), true),
             KeyCode::Esc => ("Esc".to_string(), true),
             _ => (String::new(), false), // or whatever default you want
@@ -51,6 +52,15 @@ impl EventHandler {
                     _ => CurrentScreen::ListSelection,
                 };
             }
+            if key.code == KeyCode::BackTab {
+                app.current_screen = match &app.current_screen {
+                    CurrentScreen::ListSelection => CurrentScreen::DBSelection,
+                    CurrentScreen::ItemSelection => CurrentScreen::ListSelection,
+                    CurrentScreen::DBSelection => CurrentScreen::ItemSelection,
+                    _ => CurrentScreen::ListSelection,
+                };
+            }
+            app.last_active_screen = app.current_screen.clone();
         }
 
         if app.awaiting_second_g {
@@ -109,7 +119,7 @@ impl EventHandler {
             KeyCode::Char('2') => app.current_screen = CurrentScreen::ItemSelection,
             KeyCode::Char('3') => app.current_screen = CurrentScreen::DBSelection,
             KeyCode::Esc => {
-                app.current_screen = CurrentScreen::ListSelection;
+                app.go_back();
                 app.reset_key_buffer();
             }
             _ => app.leader_awaiting = true,
@@ -123,7 +133,7 @@ impl EventHandler {
 
         match key.code {
             KeyCode::Esc | KeyCode::Char('q') => {
-                app.current_screen = CurrentScreen::ListSelection;
+                app.go_back();
             }
             _ => {}
         }
@@ -183,9 +193,6 @@ impl EventHandler {
                     app.current_screen = CurrentScreen::DeleteListConfirmation;
                 }
             }
-            KeyCode::Esc => {
-                app.current_screen = CurrentScreen::ListSelection;
-            }
             _ => {}
         }
     }
@@ -201,12 +208,12 @@ impl EventHandler {
                     eprintln!("Failed to delete list: {}", e);
                 }
                 app.pending_delete_list_name = None;
-                app.current_screen = CurrentScreen::ListSelection;
+                app.go_back();
             }
             KeyCode::Char('n') | KeyCode::Char('N') | KeyCode::Esc => {
                 // Cancel deletion
                 app.pending_delete_list_name = None;
-                app.current_screen = CurrentScreen::ListSelection;
+                app.go_back();
             }
             _ => {}
         }
@@ -257,8 +264,13 @@ impl EventHandler {
                     app.reset_number_modifier();
                 }
                 KeyCode::Char('G') => {
-                    if let Some(selected_list) = app.lists_component.get_selected_list_mut() {
-                        ItemsComponent::select_last(selected_list);
+                    if let Some(selected_list) = app.lists_component.get_selected_list_mut()
+                        && let Some(index) = selected_list.item_state.selected()
+                    {
+                        ItemsComponent::scroll_down_by(
+                            selected_list,
+                            selected_list.items.len() - index,
+                        );
                     }
                 }
                 _ => {}
@@ -354,7 +366,7 @@ impl EventHandler {
                         {
                             eprintln!("Failed to update list: {}", e);
                         } else {
-                            app.current_screen = CurrentScreen::ListSelection;
+                            app.go_back();
                             app.input_state.clear();
                         }
                     } else if let Err(e) =
@@ -363,7 +375,7 @@ impl EventHandler {
                     {
                         eprintln!("Failed to create list: {}", e);
                     } else {
-                        app.current_screen = CurrentScreen::ListSelection;
+                        app.go_back();
                         app.input_state.clear();
                     }
                 }
@@ -425,7 +437,7 @@ impl EventHandler {
                 if let Err(e) = app.switch_to_selected_db().await {
                     eprintln!("Failed to switch database: {}", e);
                 }
-                app.current_screen = CurrentScreen::ListSelection;
+                app.go_back();
             }
             KeyCode::Char('a') => app.enter_add_db_screen(),
             KeyCode::Char('s') => {

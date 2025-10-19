@@ -216,16 +216,6 @@ impl ListsComponent {
         let inner = block.inner(area);
         let width = inner.width as usize;
 
-        // .map(|db| {
-        //     let styled = Span::styled(db.name.clone(), Theme::fg(&theme.foreground));
-        //     let wrapped_lines = wrap(&styled.content, width);
-        //     let lines: Vec<Line> = wrapped_lines
-        //         .into_iter()
-        //         .map(|w| Line::from(w.to_string()))
-        //         .collect();
-        //     ListItem::new(lines)
-        // })
-
         // Convert lists to display items
         let items: Vec<ListItem> = self
             .lists

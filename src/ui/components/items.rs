@@ -15,7 +15,7 @@ pub struct ItemsComponent;
 
 impl ItemsComponent {
     /// Apply styling to a todo item based on its completion status
-    fn style_item(ui_item: &UIItem, selected_index: i32, theme: Theme) -> Line<'_> {
+    fn style_item(ui_item: &UIItem, selected_index: i32, theme: Theme, selected: bool) -> Line<'_> {
         let name = ui_item.item.name.clone();
 
         let item_index = ui_item.item.ordering as i32 - 1;
@@ -30,20 +30,13 @@ impl ItemsComponent {
 
         let rel_index = get_rel_index(item_index, selected_index);
 
-        let rel_num_span = if item_index - selected_index == 0 {
+        let rel_num_span = if item_index - selected_index == 0 && selected {
             Span::styled(rel_index, Theme::line_number(&theme))
+        } else if item_index - selected_index == 0 {
+            Span::styled(rel_index, Theme::fg(&theme.highlight_not_focused_fg))
         } else {
             Span::from(rel_index)
         };
-
-        // fn get_rel_index(current_index: i32, selected_index: i32) -> String {
-        //         "".to_string()
-        //     } else {
-        //         (current_index - selected_index).abs().to_string()
-        //     }
-        // }
-
-        // let rel_index = get_rel_index(item_index, selected_index);
 
         if ui_item.item.is_done {
             Line::from(vec![
@@ -326,7 +319,8 @@ impl ItemsComponent {
                 .items
                 .iter()
                 .map(|ui_item| {
-                    let styled_line = Self::style_item(ui_item, selected_index, theme.to_owned());
+                    let styled_line =
+                        Self::style_item(ui_item, selected_index, theme.to_owned(), selected);
 
                     // Assume styled_line.spans[0] and styled_line.spans[1] exist
                     let padding = "   "; // 3 spaces, adjust as needed
@@ -385,7 +379,10 @@ impl ItemsComponent {
 
             let list: List = List::new(items)
                 .block(block)
-                .highlight_style(Theme::bg(&theme.highlight_bg))
+                .highlight_style(Theme::bg(match selected {
+                    true => &theme.highlight_bg,
+                    false => &theme.highlight_not_focused_bg,
+                }))
                 .highlight_spacing(HighlightSpacing::Always);
 
             StatefulWidget::render(list, area, buf, &mut ui_list.item_state);

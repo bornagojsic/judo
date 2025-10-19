@@ -41,6 +41,18 @@ impl EventHandler {
             CurrentScreen::DBSelection,
         ];
 
+        if main_screens.contains(&app.current_screen) {
+            // Handle global key events for main screens
+            if key.code == KeyCode::Tab {
+                app.current_screen = match &app.current_screen {
+                    CurrentScreen::ListSelection => CurrentScreen::ItemSelection,
+                    CurrentScreen::ItemSelection => CurrentScreen::DBSelection,
+                    CurrentScreen::DBSelection => CurrentScreen::ListSelection,
+                    _ => CurrentScreen::ListSelection,
+                };
+            }
+        }
+
         if app.awaiting_second_g {
             app.awaiting_second_g = false;
             if key.code == KeyCode::Char('g') {
